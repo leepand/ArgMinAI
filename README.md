@@ -40,6 +40,7 @@ python examples/basic_agent.py
 
 ## 🏗️ 项目结构
 
+```bash
 ArgMinAI/
 ├── README.md              # 项目主文档
 ├── LICENSE                # MIT 或 Apache 2.0
@@ -84,6 +85,7 @@ ArgMinAI/
 └── tests/                 # 测试
     ├── unit/
     └── integration/
+```
 
 ## 🌟 示例项目
 
