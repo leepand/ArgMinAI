@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-800 dark:text-white">{{ document.title }}</h2>
+            <div class="flex items-center mt-2">
+                <span class="text-sm text-gray-600 dark:text-gray-300">
+                    Project: <span class="font-medium">{{ document.project.name }}</span> | 
+                    Version: <span class="font-medium">v{{ document.version }}</span> | 
+                    Last Updated: <span class="font-medium">{{ document.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                </span>
+            </div>
+        </div>
+        <div class="flex space-x-2">
+            <a href="{{ url_for('doc_list') }}" 
+               class="bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white px-4 py-2 rounded-md text-sm font-medium">
+                Back to Docs
+            </a>
+            <a href="{{ url_for('doc_edit', doc_id=document.id) }}" 
+               class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+                Edit Document
+            </a>
+        </div>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="md:col-span-3">
+            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 shadow overflow-hidden">
+                <div class="prose dark:prose-invert max-w-none">
+                    {{ document.content|markdown }}
+                </div>
+            </div>
+        </div>
+        
+        <div class="md:col-span-1">
+            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg shadow overflow-hidden">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-600">
+                    <h3 class="font-medium text-gray-800 dark:text-white">Version History</h3>
+                </div>
+                <!-- 更新版本历史部分 -->
+                <div class="p-2">
+                    <ul class="space-y-2">
+                        {% for version in versions %}
+                        <li>
+                            <a href="{{ url_for('doc_version_compare', doc_id=document.id) }}?from_version={{ version.id }}&to_version={{ document.id }}"
+   class="flex items-center px-3 py-2 text-sm font-medium rounded-md {% if version.id == document.id %}bg-indigo-50 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-100{% else %}text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-600{% endif %}">
+                            <span class="truncate">v{{ version.version }}</span>
+                            <span class="ml-auto text-xs text-gray-500 dark:text-gray-400">
+                                {{ version.created_at.strftime('%m/%d %H:%M') }}
+                            </span>
+                        </a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold text-gray-800 dark:text-white">New Version for: {{ feature.name }}</h2>
+        <a href="{{ url_for('feature_detail', feature_id=feature.id) }}" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+            <i class="fas fa-times"></i>
+        </a>
+    </div>
+    
+    <form method="POST" action="{{ url_for('feature_version_create', feature_id=feature.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        
+        <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Version Number*</label>
+            <input type="text" name="version" value="{{ next_version }}" required
+                   class="w-full p-2.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700">
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Use semantic versioning (e.g. 1.0.0)</p>
+        </div>
+
+        <!-- 添加在版本表单的适当位置 -->
+<div class="mb-4">
+    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Data Type</label>
+    <select id="data-type" disabled
+            class="w-full p-2.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 opacity-75">
+        <option>{{ feature.data_type }}</option>
+    </select>
+</div>
+
+<!-- 在Sample Data和Schema Definition部分添加生成按钮 -->
+<div class="mt-2 flex justify-end">
+    <button type="button" onclick="generateSampleData()"
+            class="text-sm bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white px-3 py-1 rounded-md">
+        <i class="fas fa-magic mr-1"></i> Auto-generate
+    </button>
+</div>
+        
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sample Data (JSON)*</label>
+                <textarea name="sample_data" rows="12" required
+                          class="w-full p-2.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 font-mono">{{ last_version.sample_data if last_version else '{}' }}</textarea>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Schema Definition (JSON)*</label>
+                <textarea name="schema_definition" rows="12" required
+                          class="w-full p-2.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 font-mono">{{ last_version.schema_definition if last_version else '{}' }}</textarea>
+            </div>
+        </div>
+        
+        <div class="flex justify-end mt-6 space-x-3">
+            <a href="{{ url_for('feature_detail', feature_id=feature.id) }}"
+               class="bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white px-4 py-2 rounded-md text-sm font-medium">
+                Cancel
+            </a>
+            <button type="submit"
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+                Create Version
+            </button>
+        </div>
+    </form>
+</section>
+<script>
+// 根据名称和类型生成样例数据
+function generateSampleData() {
+    const featureName = document.querySelector('input[name="name"]').value;
+    const dataType = document.getElementById('data-type').value;
+    
+    if (!featureName) {
+        alert('Please enter feature name first');
+        return;
+    }
+    
+    let sampleData = {};
+    let schema = {};
+    
+    // 根据不同类型生成不同样例
+    switch(dataType) {
+        case 'number':
+            sampleData = {
+                [`${featureName}_example1`]: 0.5,
+                [`${featureName}_example2`]: 1.0
+            };
+            schema = {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1,
+                "description": `The ${featureName} feature value`
+            };
+            break;
+            
+        case 'string':
+            sampleData = {
+                [`${featureName}_example1`]: "text_value",
+                [`${featureName}_example2`]: "another_value"
+            };
+            schema = {
+                "type": "string",
+                "maxLength": 100,
+                "description": `The ${featureName} feature value`
+            };
+            break;
+            
+        case 'boolean':
+            sampleData = {
+                [`${featureName}_example1`]: true,
+                [`${featureName}_example2`]: false
+            };
+            schema = {
+                "type": "boolean",
+                "description": `Whether ${featureName} is present`
+            };
+            break;
+            
+        case 'datetime':
+            sampleData = {
+                [`${featureName}_example1`]: "2023-01-01T00:00:00Z",
+                [`${featureName}_example2`]: "2023-01-02T12:34:56Z"
+            };
+            schema = {
+                "type": "string",
+                "format": "date-time",
+                "description": `The ${featureName} timestamp`
+            };
+            break;
+            
+        case 'array':
+            sampleData = {
+                [`${featureName}_example1`]: [1, 2, 3],
+                [`${featureName}_example2`]: ["a", "b", "c"]
+            };
+            schema = {
+                "type": "array",
+                "items": {
+                    "type": ["number", "string"]
+                },
+                "description": `The ${featureName} list`
+            };
+            break;
+            
+        case 'tensor':
+            sampleData = {
+                [`${featureName}_example1`]: [[1, 2], [3, 4]],
+                [`${featureName}_example2`]: [[0.1, 0.2], [0.3, 0.4]]
+            };
+            schema = {
+                "type": "array",
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    }
+                },
+                "description": `The ${featureName} tensor`
+            };
+            break;
+            
+        case 'dict':
+            sampleData = {
+                [`${featureName}_example1`]: {"key1": "value1", "key2": 123},
+                [`${featureName}_example2`]: {"a": 1, "b": 2, "c": 3}
+            };
+            schema = {
+                "type": "object",
+                "additionalProperties": {
+                    "type": ["string", "number"]
+                },
+                "description": `The ${featureName} dictionary`
+            };
+            break;
+    }
+    
+    // 填充表单
+    document.querySelector('textarea[name="sample_data"]').value = JSON.stringify(sampleData, null, 2);
+    document.querySelector('textarea[name="schema_definition"]').value = JSON.stringify(schema, null, 2);
+}
+
+// 监听名称和类型变化
+document.querySelector('input[name="name"]').addEventListener('input', generateSampleData);
+document.getElementById('data-type').addEventListener('change', generateSampleData);
+</script>
+{% endblock %}

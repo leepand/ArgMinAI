@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+    <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-6">
+        {% if is_edit %}Edit{% else %}Create New{% endif %} Project
+    </h2>
+    
+    <form method="POST" action="{% if is_edit %}{{ url_for('project_edit', project_id=project.id) }}{% else %}{{ url_for('project_create') }}{% endif %}">
+        <!-- 必须包含CSRF令牌 -->
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <div class="mb-4">
+            <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Project Name</label>
+            <input type="text" id="name" name="name" required
+                   class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
+                   value="{{ project.name if is_edit else '' }}">
+        </div>
+        
+        <div class="mb-4">
+            <label for="description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+            <textarea id="description" name="description" rows="4"
+                      class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">{{ project.description if is_edit else '' }}</textarea>
+        </div>
+        
+        {% if is_edit %}
+        <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
+            <select name="status" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+                <option value="active" {% if project.status == 'active' %}selected{% endif %}>Active</option>
+                <option value="paused" {% if project.status == 'paused' %}selected{% endif %}>Paused</option>
+                <option value="archived" {% if project.status == 'archived' %}selected{% endif %}>Archived</option>
+            </select>
+        </div>
+        {% endif %}
+        
+        <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tags</label>
+            <div class="flex flex-wrap gap-2">
+                {% for tag in all_tags %}
+                <div class="flex items-center">
+                    <input id="tag-{{ tag.id }}" name="tags" type="checkbox" value="{{ tag.id }}"
+                           class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700"
+                           {% if is_edit and tag in project.tags %}checked{% endif %}>
+                    <label for="tag-{{ tag.id }}" class="ml-2 text-sm text-gray-900 dark:text-gray-300">
+                        <span class="px-2 py-1 text-xs font-semibold rounded bg-{{ tag.color }}-100 text-{{ tag.color }}-800 dark:bg-{{ tag.color }}-900 dark:text-{{ tag.color }}-200">
+                            {{ tag.name }}
+                        </span>
+                    </label>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <div class="flex justify-end">
+            <a href="{% if is_edit %}{{ url_for('project_detail', project_id=project.id) }}{% else %}{{ url_for('project_list') }}{% endif %}" 
+               class="bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white px-4 py-2 rounded-md text-sm font-medium mr-2">
+                Cancel
+            </a>
+            <button type="submit" 
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+                {% if is_edit %}Update{% else %}Create{% endif %} Project
+            </button>
+        </div>
+    </form>
+</section>
+{% endblock %}

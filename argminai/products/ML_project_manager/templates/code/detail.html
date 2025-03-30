@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Code Version: v{{ version.version }}</h2>
+            <div class="flex items-center mt-2">
+                <span class="text-sm text-gray-600 dark:text-gray-300">
+                    Project: <span class="font-medium">{{ version.project.name }}</span> | 
+                    Author: <span class="font-medium">{{ version.author.username }}</span> | 
+                    Created: <span class="font-medium">{{ version.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                </span>
+            </div>
+        </div>
+        <div class="flex space-x-2">
+            <a href="{{ url_for('code_list', project_id=version.project_id) }}" 
+               class="bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white px-4 py-2 rounded-md text-sm font-medium">
+                Back to Code
+            </a>
+            <a href="{{ url_for('code_download', version_id=version.id) }}" 
+               class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+                Download
+            </a>
+        </div>
+    </div>
+
+    <div class="mb-4">
+        <h3 class="text-lg font-medium text-gray-800 dark:text-white mb-2">Commit Message</h3>
+        <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+            {{ version.commit_message }}
+        </div>
+    </div>
+
+    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg shadow overflow-hidden">
+        <div class="p-3 border-b border-gray-200 dark:border-gray-600 flex justify-between items-center bg-gray-100 dark:bg-gray-600">
+            <div class="flex items-center">
+                <i class="fas fa-file-code mr-2 text-blue-500"></i>
+                <span class="font-mono text-sm">{{ version.file_path.split('/')[-1] }}</span>
+            </div>
+            <div class="text-sm text-gray-500 dark:text-gray-400">
+                {{ version.file_path }}
+            </div>
+        </div>
+        <div class="p-4 overflow-auto">
+            <pre><code class="language-{{ version.file_path.split('.')[-1] }}">{{ file_content }}</code></pre>
+        </div>
+    </div>
+</section>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+<script>hljs.highlightAll();</script>
+{% endblock %}

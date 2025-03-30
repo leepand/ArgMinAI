@@ -1,0 +1,84 @@
+<nav class="bg-white dark:bg-gray-800 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16">
+            <div class="flex">
+                <div class="flex-shrink-0 flex items-center">
+                    <a href="{{ url_for('project_list') }}" class="flex items-center">
+                        <i class="fas fa-brain text-indigo-600 dark:text-indigo-400 text-2xl mr-2"></i>
+                        <span class="text-xl font-bold text-gray-800 dark:text-white">ML Project Manager</span>
+                    </a>
+                </div>
+                <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
+                    <!-- Projects 链接 -->
+                    <a href="{{ url_for('project_list') }}" 
+                       class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium 
+                       {% if request.endpoint and request.endpoint.startswith('project_') %} 
+                           border-indigo-500 text-gray-900 dark:text-white
+                       {% else %}
+                           border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white
+                       {% endif %}">
+                        <i class="fas fa-project-diagram mr-2"></i> Projects
+                    </a>
+                    
+                    <!-- Code 链接 -->
+                    <a href="{{ url_for('code_list') }}" 
+                       class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium 
+                       {% if request.endpoint and request.endpoint.startswith('code_') %} 
+                           border-indigo-500 text-gray-900 dark:text-white
+                       {% else %}
+                           border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white
+                       {% endif %}">
+                        <i class="fas fa-code mr-2"></i> Codes
+                    </a>
+                    
+                    <!-- Docs 链接 -->
+                    <a href="{{ url_for('doc_list') }}" 
+                       class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium 
+                       {% if request.endpoint and request.endpoint.startswith('doc_') %} 
+                           border-indigo-500 text-gray-900 dark:text-white
+                       {% else %}
+                           border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white
+                       {% endif %}">
+                        <i class="fas fa-file-alt mr-2"></i> Docs
+                    </a>
+                    
+                    <!-- Experiments 链接 -->
+                    <a href="{{ url_for('feature_list') }}" 
+                       class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium 
+                       {% if request.endpoint and request.endpoint.startswith('feature_') %} 
+                           border-indigo-500 text-gray-900 dark:text-white
+                       {% else %}
+                           border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white
+                       {% endif %}">
+                        <i class="fas fa-sliders-h  mr-2"></i> Features
+                    </a>
+                </div>
+            </div>
+            <div class="hidden sm:ml-6 sm:flex sm:items-center">
+                <div class="ml-3 relative">
+                    <button id="theme-toggle" class="p-2 rounded-full bg-gray-200 dark:bg-gray-700">
+                        <i id="theme-icon" class="fas fa-moon"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>
+<script>
+    // 暗色模式切换
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeIcon = document.getElementById('theme-icon');
+        const html = document.documentElement;
+        
+        if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            html.classList.add('dark');
+            themeIcon.classList.replace('fa-moon', 'fa-sun');
+        }
+        
+        themeToggle.addEventListener('click', () => {
+            html.classList.toggle('dark');
+            localStorage.setItem('theme', html.classList.contains('dark') ? 'dark' : 'light');
+            themeIcon.classList.toggle('fa-moon');
+            themeIcon.classList.toggle('fa-sun');
+        });
+</script>

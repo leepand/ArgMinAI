@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Edit Feature: {{ feature.name }}</h2>
+        <div>
+            <a href="{{ url_for('feature_detail', feature_id=feature.id) }}" class="btn-secondary mr-2">
+                <i class="fas fa-times mr-2"></i> Cancel
+            </a>
+            <button form="edit-form" type="submit" class="btn-primary">
+                <i class="fas fa-save mr-2"></i> Save Changes
+            </button>
+        </div>
+    </div>
+    
+    <form id="edit-form" method="POST" action="{{ url_for('feature_update', feature_id=feature.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Feature Name*</label>
+                    <input type="text" name="name" value="{{ feature.name }}" required
+                           class="w-full p-2.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Data Type*</label>
+                    <select name="data_type" required
+                            class="w-full p-2.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700">
+                        {% for type in ['number', 'string', 'boolean', 'datetime', 'array', 'tensor'] %}
+                        <option value="{{ type }}" {% if feature.data_type == type %}selected{% endif %}>{{ type|capitalize }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Project</label>
+                    <select name="project_id"
+                            class="w-full p-2.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700">
+                        {% for project in projects %}
+                        <option value="{{ project.id }}" {% if feature.project_id == project.id %}selected{% endif %}>{{ project.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+                    <textarea name="description" rows="5"
+                              class="w-full p-2.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700">{{ feature.description }}</textarea>
+                </div>
+            </div>
+        </div>
+    </form>
+</section>
+{% endblock %}

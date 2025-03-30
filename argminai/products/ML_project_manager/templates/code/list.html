@@ -1,0 +1,433 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Code Management</h2>
+        <div class="flex space-x-2">
+            <form method="GET" class="flex items-center">
+                <select name="project_id" onchange="this.form.submit()"
+                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+                    <option value="">Select Project</option>
+                    {% for project in projects %}
+                    <option value="{{ project.id }}" 
+                            {% if selected_project_id|default(projects[0].id) == project.id %}selected{% endif %}>
+                        {{ project.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </form>
+            
+            {% if selected_project_id %}
+            <button onclick="document.getElementById('upload-modal').classList.remove('hidden')"
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center">
+                <i class="fas fa-upload mr-2"></i> Upload Code
+            </button>
+            {% endif %}
+        </div>
+    </div>
+    
+    {% if selected_project_id %}
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <!-- 更新文件浏览器部分 -->
+        <!-- 文件浏览器部分 -->
+        <div class="md:col-span-1 bg-gray-50 dark:bg-gray-700 rounded-lg shadow overflow-hidden">
+            <div class="p-4 border-b border-gray-200 dark:border-gray-600">
+                <h3 class="font-medium text-gray-800 dark:text-white">
+                    文件浏览器
+                    {% if current_version %}
+                    <span class="text-sm text-gray-500 ml-2">v{{ current_version.version }}</span>
+                    {% endif %}
+                </h3>
+            </div>
+            <div class="p-2 overflow-y-auto" style="max-height: 60vh;">
+                {% if files %}
+                <ul class="space-y-1">
+                    {% for file in files %}
+                    <li>
+                        <button onclick="loadFileContent('{{ file.path }}', '{{ file.name }}')"
+                                class="w-full text-left px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-md flex items-center">
+                            <i class="fas fa-{{ 'folder' if file.is_dir else 'file-code' }} mr-2 text-{{ 'yellow' if file.is_dir else 'blue' }}-500"></i>
+                            <span class="truncate">{{ file.name }}</span>
+                        </button>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <div class="p-4 text-center text-gray-500 dark:text-gray-400">
+                    {% if selected_project_id %}
+                    <p>该项目暂无代码文件</p>
+                    <button onclick="document.getElementById('upload-modal').classList.remove('hidden')"
+                            class="mt-2 text-indigo-600 hover:text-indigo-800 dark:text-indigo-400">
+                        点击上传
+                    </button>
+                    {% else %}
+                    <p>请先选择项目</p>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        <!-- 代码查看器 -->
+        <div class="md:col-span-3">
+            <div id="code-viewer" class="bg-gray-50 dark:bg-gray-700 rounded-lg shadow overflow-hidden">
+                <div class="p-3 border-b border-gray-200 dark:border-gray-600 flex justify-between items-center bg-gray-100 dark:bg-gray-600">
+                    <div class="flex items-center">
+                        <i class="fas fa-file-code mr-2 text-blue-500"></i>
+                        <span id="filename-display" class="font-mono text-sm">Select a file</span>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button id="history-btn" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                            <i class="fas fa-history"></i>
+                        </button>
+                        <button id="download-btn" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                            <i class="fas fa-download"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="p-4">
+                    <pre id="code-content"><code class="language-python">// Select a file to view content</code></pre>
+                </div>
+            </div>
+            
+            <!-- 版本历史 -->
+            <div class="mt-6">
+                <h3 class="text-lg font-medium text-gray-800 dark:text-white mb-3">Version History</h3>
+                <div class="version-history-container">
+                    <div class="overflow-x-auto">
+                        <table class="version-history">
+                            <thead>
+                                <tr>
+                                    <th class="w-1/6">Version</th>
+                                    <th class="w-1/6">Files</th>
+                                    <th class="w-1/6">Size</th>
+                                    <th class="w-1/6">Author</th>
+                                    <th class="w-1/6">Date</th>
+                                    <th class="w-1/6 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                {% for version in versions %}
+                                <tr>
+                                    <td>
+                                        <span class="version-badge bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                            v{{ version.version }}
+                                        </span>
+                                    </td>
+                                    <td class="text-gray-600 dark:text-gray-300">
+                                        {{ version.file_count }} files
+                                    </td>
+                                    <td class="font-mono text-gray-500 dark:text-gray-400">
+                                        {{ version.total_size|filesizeformat }}
+                                    </td>
+                                    <td>
+                                        <div class="flex items-center">
+                                            <div class="flex-shrink-0 h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center">
+                                               <span class="text-xs text-gray-600 dark:text-gray-300">
+                                                  {{ version.author.username|default('leepand', true)|first|upper }}
+                                                </span>
+                                            </div>
+                                            <div class="ml-3">
+                                                <p class="text-sm font-medium text-gray-900 dark:text-white">
+                                                    {{ version.author.username }}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="text-gray-500 dark:text-gray-400">
+                                        {{ version.created_at.strftime('%b %d, %Y') }}
+                                    </td>
+                                    <td class="text-right">
+                                        <div class="action-buttons justify-end">
+                                            <a href="{{ url_for('code_version', version_id=version.id) }}" 
+                                               class="action-btn view-btn">
+                                                <i class="fas fa-eye mr-1"></i> View
+                                            </a>
+                                            <a href="{{ url_for('download_version', version_id=version.id) }}" 
+                                               class="action-btn download-btn">
+                                                <i class="fas fa-download mr-1"></i> Download
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="6" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                                        <i class="fas fa-inbox mr-2"></i> No version history available
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 上传模态框 -->
+    <!-- 上传模态框 (建议放在list.html中) -->
+<div id="upload-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-bold text-gray-800 dark:text-white">上传代码</h3>
+            <button onclick="closeUploadModal()" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <form method="POST" action="{{ url_for('code_upload') }}" enctype="multipart/form-data">
+            <input type="hidden" name="project_id" value="{{ selected_project_id }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            
+            <!-- 上传类型选择 - 放在这里 -->
+            <div class="upload-options mb-4">
+                <div class="flex space-x-4">
+                    <label class="flex-1 cursor-pointer">
+                        <input type="radio" name="upload_type" value="file" checked class="peer hidden">
+                        <div class="p-4 border rounded-lg peer-checked:border-indigo-500 peer-checked:bg-indigo-50 dark:peer-checked:bg-gray-700">
+                            <i class="fas fa-file text-indigo-600 dark:text-indigo-400 mb-2"></i>
+                            <p class="font-medium">上传文件</p>
+                        </div>
+                    </label>
+                    
+                    <label class="flex-1 cursor-pointer">
+                        <input type="radio" name="upload_type" value="folder" class="peer hidden">
+                        <div class="p-4 border rounded-lg peer-checked:border-indigo-500 peer-checked:bg-indigo-50 dark:peer-checked:bg-gray-700">
+                            <i class="fas fa-folder text-indigo-600 dark:text-indigo-400 mb-2"></i>
+                            <p class="font-medium">上传文件夹</p>
+                        </div>
+                    </label>
+                </div>
+            </div>
+            
+            <!-- 文件选择区域 -->
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">选择文件</label>
+                <div id="file-input-container" class="mt-1">
+                    <!-- 动态切换的文件输入 -->
+                </div>
+                <div id="file-list" class="mt-2 text-sm text-gray-500 dark:text-gray-400"></div>
+            </div>
+            
+            <!-- 版本信息 -->
+            <div class="mb-4">
+                <label for="version" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">版本号</label>
+                <input type="text" id="version" name="version" required
+                       class="w-full p-2.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700"
+                       value="{{ default_version }}">
+            </div>
+            
+            <!-- 提交按钮 -->
+            <div class="flex justify-end">
+                <button type="button" onclick="closeUploadModal()"
+                        class="bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white px-4 py-2 rounded-md text-sm font-medium mr-2">
+                    取消
+                </button>
+                <button type="submit"
+                        class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+                    上传
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+    
+    {% else %}
+    <div class="text-center py-12">
+        <i class="fas fa-code text-4xl text-gray-400 mb-4"></i>
+        <p class="text-gray-600 dark:text-gray-300">Select a project to view or upload code</p>
+    </div>
+    {% endif %}
+</section>
+
+<script>
+
+// 动态切换文件输入类型
+document.querySelectorAll('input[name="upload_type"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        const container = document.getElementById('file-input-container');
+        if (this.value === 'folder') {
+            container.innerHTML = `
+                <label class="cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center">
+                    <i class="fas fa-folder-open mr-2"></i> 选择文件夹
+                    <input type="file" name="file" webkitdirectory directory multiple class="hidden" 
+                           onchange="updateFileList(this)">
+                </label>`;
+        } else {
+            container.innerHTML = `
+                <label class="cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center">
+                    <i class="fas fa-file-upload mr-2"></i> 选择文件
+                    <input type="file" name="file" multiple class="hidden" 
+                           onchange="updateFileList(this)">
+                </label>`;
+        }
+    });
+});
+
+function updateFileList(input) {
+    const fileList = document.getElementById('file-list');
+    if (input.files.length > 0) {
+        let html = '';
+        const maxShow = 3;
+        
+        for (let i = 0; i < Math.min(input.files.length, maxShow); i++) {
+            html += `<div class="truncate">${input.files[i].name}</div>`;
+        }
+        
+        if (input.files.length > maxShow) {
+            html += `<div>+ ${input.files.length - maxShow} 更多文件...</div>`;
+        }
+        
+        fileList.innerHTML = html;
+    } else {
+        fileList.innerHTML = '';
+    }
+}
+
+function closeUploadModal() {
+    document.getElementById('upload-modal').classList.add('hidden');
+}
+
+// 切换文件夹显示
+function toggleFolder(button) {
+    const folderItem = button.closest('.folder-item');
+    const folderContents = folderItem.querySelector('.folder-contents');
+    const chevron = button.querySelector('.fa-chevron-right');
+    
+    if (folderContents.classList.contains('hidden')) {
+        const path = folderItem.dataset.path;
+        fetchFolderContents(path, folderContents);
+        chevron.classList.replace('fa-chevron-right', 'fa-chevron-down');
+    } else {
+        folderContents.classList.add('hidden');
+        chevron.classList.replace('fa-chevron-down', 'fa-chevron-right');
+    }
+}
+
+// 获取文件夹内容
+function fetchFolderContents(path, targetElement) {
+    fetch(`/api/code/folder?path=${encodeURIComponent(path)}`)
+        .then(response => response.json())
+        .then(files => {
+            let contents = '';
+            files.forEach(file => {
+                if (file.is_dir) {
+                    contents += `
+                    <li class="folder-item" data-path="${file.path}">
+                        <div class="flex items-center justify-between">
+                            <button onclick="toggleFolder(this)"
+                                    class="flex-1 text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-md flex items-center">
+                                <i class="fas fa-folder mr-2 text-yellow-500"></i>
+                                <span class="truncate">${file.name}</span>
+                                <i class="fas fa-chevron-right ml-auto text-xs"></i>
+                            </button>
+                        </div>
+                        <ul class="folder-contents pl-4 hidden"></ul>
+                    </li>`;
+                } else {
+                    contents += `
+                    <li>
+                        <button onclick="loadFileContent('${file.path}', '${file.name}')"
+                                class="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-md flex items-center">
+                            <i class="fas fa-file-code mr-2 text-blue-500"></i>
+                            <span class="truncate">${file.name}</span>
+                        </button>
+                    </li>`;
+                }
+            });
+            
+            targetElement.innerHTML = contents;
+            targetElement.classList.remove('hidden');
+        });
+}
+// 刷新文件树
+function refreshFileTree() {
+    fetch(`/api/code/files?project_id={{ selected_project_id }}`)
+        .then(response => response.json())
+        .then(data => {
+            const fileTree = document.getElementById('file-tree');
+            fileTree.innerHTML = '';
+            
+            data.files.forEach(file => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <button onclick="loadFileContent('${file.path}', '${file.rel_path}')"
+                            class="w-full text-left px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-md flex items-center">
+                        <i class="fas fa-${file.is_dir ? 'folder' : 'file-code'} mr-2 text-${file.is_dir ? 'yellow' : 'blue'}-500"></i> 
+                        <span class="truncate">${file.rel_path}</span>
+                    </button>
+                `;
+                fileTree.appendChild(li);
+            });
+        });
+}
+
+// 加载文件内容
+function loadFileContent(filePath, fileName) {
+    fetch(`/api/code/file?path=${encodeURIComponent(filePath)}`)
+        .then(response => {
+            if (!response.ok) throw new Error('File not found');
+            return response.json();
+        })
+        .then(data => {
+            document.getElementById('filename-display').textContent = fileName;
+            const codeContent = document.getElementById('code-content');
+            codeContent.textContent = data.content;
+            codeContent.className = `language-${data.language}`;
+            hljs.highlightElement(codeContent);
+            
+            // 更新下载按钮
+            document.getElementById('download-btn').onclick = () => {
+                window.location.href = `/code/download?path=${encodeURIComponent(filePath)}`;
+            };
+        })
+        .catch(error => {
+            alert(error.message);
+        });
+}
+// 更新文件选择处理
+document.getElementById('file-upload').addEventListener('change', function(e) {
+    const files = e.target.files;
+    let fileNames = [];
+    for (let i = 0; i < files.length; i++) {
+        fileNames.push(files[i].webkitRelativePath || files[i].name);
+    }
+    document.getElementById('file-name').textContent = 
+        files.length > 3 ? 
+        `${files.length} files selected` : 
+        fileNames.join(', ');
+});
+
+// 文件选择显示
+document.querySelector('input[type="file"]').addEventListener('change', function(e) {
+    const fileName = e.target.files[0] ? e.target.files[0].name : 'No file selected';
+    document.getElementById('file-name').textContent = fileName;
+});
+
+// 加载文件内容
+function loadFileContent(filePath, fileName) {
+    fetch(`/api/code/file?path=${encodeURIComponent(filePath)}`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('filename-display').textContent = fileName;
+            const codeContent = document.getElementById('code-content');
+            codeContent.textContent = data.content;
+            codeContent.className = `language-${data.language || 'python'}`;
+            hljs.highlightElement(codeContent);
+            
+            // 更新下载和历史按钮
+            document.getElementById('download-btn').onclick = () => {
+                window.location.href = `/code/download?path=${encodeURIComponent(filePath)}`;
+            };
+            document.getElementById('history-btn').onclick = () => {
+                window.location.href = `/code/history?path=${encodeURIComponent(filePath)}`;
+            };
+        })
+        .catch(error => {
+            console.error('Error loading file:', error);
+            alert('Failed to load file content');
+        });
+}
+</script>
+{% endblock %}

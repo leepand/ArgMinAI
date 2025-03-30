@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold text-gray-800 dark:text-white">{{ project.name }}</h2>
+        <!-- 更新操作按钮部分 -->
+        <div class="flex space-x-2">
+            <a href="{{ url_for('project_list') }}" 
+               class="bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white px-4 py-2 rounded-md text-sm font-medium">
+                Back to Projects
+            </a>
+            <a href="{{ url_for('project_edit', project_id=project.id) }}" 
+               class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+                Edit Project
+            </a>
+        </div>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div class="md:col-span-2">
+            <h3 class="text-lg font-medium text-gray-800 dark:text-white mb-2">Description</h3>
+            <p class="text-gray-600 dark:text-gray-300 mb-4">{{ project.description }}</p>
+            
+            <!-- 替换原有的固定标签部分 -->
+            <div class="flex items-center mb-4">
+                {% for tag in project.tags %}
+                <span class="bg-{{ tag.color }}-100 text-{{ tag.color }}-800 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded dark:bg-{{ tag.color }}-200 dark:text-{{ tag.color }}-900">
+                    {{ tag.name }}
+                </span>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+            <h3 class="font-medium text-gray-800 dark:text-white mb-3">Project Info</h3>
+            <ul class="space-y-2">
+                <li class="flex justify-between">
+                    <span class="text-gray-600 dark:text-gray-300">Status:</span>
+                    <span class="font-medium 
+                        {% if project.status == 'active' %}text-green-600 dark:text-green-400
+                        {% elif project.status == 'paused' %}text-yellow-600 dark:text-yellow-400
+                        {% else %}text-gray-600 dark:text-gray-400{% endif %}">
+                        {{ project.status|capitalize }}
+                    </span>
+                </li>
+                <li class="flex justify-between">
+                    <span class="text-gray-600 dark:text-gray-300">Created:</span>
+                    <span class="font-medium">{{ project.created_at.strftime('%Y-%m-%d') }}</span>
+                </li>
+                <li class="flex justify-between">
+                    <span class="text-gray-600 dark:text-gray-300">Last Updated:</span>
+                    <span class="font-medium">{{ project.updated_at.strftime('%Y-%m-%d') if project.updated_at else 'N/A' }}</span>
+                </li>
+                <li class="flex justify-between">
+                    <span class="text-gray-600 dark:text-gray-300">Owner:</span>
+                    <span class="font-medium">Admin</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="mb-6">
+        <h3 class="text-lg font-medium text-gray-800 dark:text-white mb-3">Recent Activity</h3>
+        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 shadow-inner">
+            <ul class="divide-y divide-gray-200 dark:divide-gray-600">
+                <li class="py-3">
+                    <div class="flex items-center space-x-4">
+                        <div class="flex-shrink-0">
+                            <img class="h-8 w-8 rounded-full" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="">
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                Project created
+                            </p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 truncate">
+                                Initial setup
+                            </p>
+                        </div>
+                        <div class="inline-flex items-center text-sm text-gray-500 dark:text-gray-400">
+                            {{ project.created_at.strftime('%Y-%m-%d') }}
+                        </div>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</section>
+{% endblock %}

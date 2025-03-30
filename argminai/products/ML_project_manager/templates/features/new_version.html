@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold text-gray-800 dark:text-white">New Version for: {{ feature.name }}</h2>
+        <div>
+            <a href="{{ url_for('feature_detail', feature_id=feature.id) }}" class="btn-secondary mr-2">
+                <i class="fas fa-times mr-2"></i> Cancel
+            </a>
+            <button form="version-form" type="submit" class="btn-primary">
+                <i class="fas fa-plus mr-2"></i> Create Version
+            </button>
+        </div>
+    </div>
+    
+    <form id="version-form" method="POST" action="{{ url_for('feature_version_create', feature_id=feature.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Version Number*</label>
+                <input type="text" name="version" value="{{ next_version }}" required
+                       class="w-full p-2.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700">
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Use semantic versioning (e.g. 1.0.0)</p>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Based On</label>
+                <select class="w-full p-2.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700"
+                        onchange="loadVersionData(this.value)">
+                    <option value="">Select a version to copy from</option>
+                    {% for version in feature.versions|sort(attribute='created_at', reverse=True) %}
+                    <option value="{{ version.id }}">v{{ version.version }} - {{ version.created_at.strftime('%Y-%m-%d') }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sample Data (JSON)*</label>
+                <textarea name="sample_data" id="sample-data" rows="12" required
+                          class="w-full p-2.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 font-mono">{{ latest_sample_data }}</textarea>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Schema Definition (JSON)*</label>
+                <textarea name="schema_definition" id="schema-definition" rows="12" required
+                          class="w-full p-2.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 font-mono">{{ latest_schema }}</textarea>
+            </div>
+        </div>
+    </form>
+</section>
+
+<script>
+function loadVersionData(versionId) {
+    if (!versionId) return;
+    
+    fetch(`/api/features/versions/${versionId}`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('sample-data').value = JSON.stringify(data.sample_data, null, 2);
+            document.getElementById('schema-definition').value = JSON.stringify(data.schema_definition, null, 2);
+        });
+}
+</script>
+{% endblock %}

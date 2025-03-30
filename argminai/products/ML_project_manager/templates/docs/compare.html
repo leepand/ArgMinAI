@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Version Comparison</h2>
+        <a href="{{ url_for('doc_detail', doc_id=document.id) }}" 
+           class="bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white px-4 py-2 rounded-md text-sm font-medium">
+            Back to Document
+        </a>
+    </div>
+    
+    <form method="POST" class="mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label for="from_version" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">From Version</label>
+                <select id="from_version" name="from_version" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+                    {% for version in all_versions %}
+                    <option value="{{ version.id }}" {% if from_version.id == version.id %}selected{% endif %}>
+                        v{{ version.version }} - {{ version.created_at.strftime('%Y-%m-%d %H:%M') }}
+                        {% if version.id == document.id %}(Current){% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="to_version" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">To Version</label>
+                <select id="to_version" name="to_version" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+                    {% for version in all_versions %}
+                    <option value="{{ version.id }}" {% if to_version.id == version.id %}selected{% endif %}>
+                        v{{ version.version }} - {{ version.created_at.strftime('%Y-%m-%d %H:%M') }}
+                        {% if version.id == document.id %}(Current){% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="mt-4 flex justify-end">
+            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+                Compare Versions
+            </button>
+        </div>
+    </form>
+    
+    <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 overflow-auto">
+        {{ diff_content|safe }}
+    </div>
+</section>
+{% endblock %}

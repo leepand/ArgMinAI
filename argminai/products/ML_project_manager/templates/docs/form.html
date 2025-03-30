@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="bg-white dark:bg-gray-800 shadow rounded-lg p-6 flex flex-col min-h-0">
+    <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-6">
+        {% if is_edit %}Edit{% else %}Create New{% endif %} Document
+    </h2>
+    
+    <form id="doc-form" method="POST" class="flex-grow flex flex-col min-h-0"
+          action="{% if is_edit %}{{ url_for('doc_edit', doc_id=document.id) }}{% else %}{{ url_for('doc_create') }}{% endif %}">
+        <!-- CSRF token -->
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <!-- Basic info -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+                <label for="title" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Title*</label>
+                <input type="text" id="title" name="title" required
+                       class="w-full p-2.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500"
+                       value="{{ document.title if is_edit else '' }}">
+            </div>
+            <div>
+                <label for="project_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Project*</label>
+                <select id="project_id" name="project_id" required
+                        class="w-full p-2.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500">
+                    {% for project in projects %}
+                    <option value="{{ project.id }}" {% if is_edit and document.project_id == project.id %}selected{% endif %}>
+                        {{ project.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <!-- Version control -->
+        <div class="mb-4">
+            <label for="version" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Version*</label>
+            <div class="flex space-x-2">
+                <input type="text" id="version" name="version" required
+                       class="flex-1 p-2.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500"
+                       value="{{ document.version if is_edit else '1.0.0' }}">
+                <button type="button" id="version-suggest" class="px-3 py-2 text-sm rounded-lg bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600">
+                    Suggest
+                </button>
+            </div>
+            <div class="flex space-x-4 mt-2">
+                <label class="inline-flex items-center">
+                    <input type="radio" name="update_type" value="patch" checked class="h-4 w-4 text-indigo-600 focus:ring-indigo-500">
+                    <span class="ml-2 text-sm">Patch (0.0.x)</span>
+                </label>
+                <label class="inline-flex items-center">
+                    <input type="radio" name="update_type" value="minor" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500">
+                    <span class="ml-2 text-sm">Minor (0.x.0)</span>
+                </label>
+                <label class="inline-flex items-center">
+                    <input type="radio" name="update_type" value="major" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500">
+                    <span class="ml-2 text-sm">Major (x.0.0)</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Editor area -->
+        <div class="flex-grow grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-0 mb-6">
+            <!-- Editor -->
+            <div class="flex flex-col h-full min-h-0">
+                <div class="flex justify-between items-center mb-2">
+                    <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Content (Markdown)*</label>
+                    <button type="button" id="save-draft" class="text-sm text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300">
+                        <i class="fas fa-save mr-1"></i> Save Draft
+                    </button>
+                </div>
+                <textarea id="content" name="content" required
+                          class="flex-grow w-full p-2.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500"
+                          style="resize: none;">{{ document.content if is_edit else '' }}</textarea>
+            </div>
+            
+            <!-- Preview -->
+            <div class="flex flex-col h-full min-h-0">
+                <label class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Preview</label>
+                <div id="preview" class="flex-grow overflow-auto p-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 prose dark:prose-invert max-w-none">
+                    {{ (document.content if is_edit else '')|markdown }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="flex justify-end">
+            <a href="{% if is_edit %}{{ url_for('doc_detail', doc_id=document.id) }}{% else %}{{ url_for('doc_list') }}{% endif %}" 
+               class="bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white px-4 py-2 rounded-md text-sm font-medium mr-2">
+                Cancel
+            </a>
+            <button type="submit" 
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+                {% if is_edit %}Update{% else %}Create{% endif %} Document
+            </button>
+        </div>
+    </form>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+// Wait for DOM to be fully loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize variables
+    const contentTextarea = document.getElementById('content');
+    const previewDiv = document.getElementById('preview');
+    const versionSuggestBtn = document.getElementById('version-suggest');
+    const saveDraftBtn = document.getElementById('save-draft');
+    
+    // Only proceed if elements exist
+    if (!contentTextarea || !previewDiv || !versionSuggestBtn || !saveDraftBtn) {
+        console.error('Required elements not found');
+        return;
+    }
+
+    // Real-time Markdown preview
+    function updatePreview() {
+        try {
+            previewDiv.innerHTML = marked.parse(contentTextarea.value);
+        } catch (e) {
+            previewDiv.innerHTML = '<div class="text-red-500">Error rendering preview</div>';
+            console.error('Markdown parsing error:', e);
+        }
+    }
+    
+    contentTextarea.addEventListener('input', updatePreview);
+    updatePreview(); // Initial preview
+
+    // Version suggestion
+    versionSuggestBtn.addEventListener('click', async function() {
+        const title = document.getElementById('title').value;
+        const projectId = document.getElementById('project_id').value;
+        const updateType = document.querySelector('input[name="update_type"]:checked').value;
+        
+        if (!title || !projectId) {
+            showNotification('Please fill in title and select project', 'error');
+            return;
+        }
+
+        try {
+            versionSuggestBtn.disabled = true;
+            versionSuggestBtn.innerHTML = 'Suggesting...';
+            
+            const response = await fetch(`/api/next-version?project_id=${projectId}&title=${encodeURIComponent(title)}&type=${updateType}`);
+            
+            if (!response.ok) {
+                throw new Error('Failed to get version suggestion');
+            }
+            
+            const data = await response.json();
+            document.getElementById('version').value = data.version || '1.0.0';
+        } catch (error) {
+            console.error('Version suggestion error:', error);
+            showNotification(error.message || 'Failed to suggest version', 'error');
+        } finally {
+            versionSuggestBtn.disabled = false;
+            versionSuggestBtn.innerHTML = 'Suggest';
+        }
+    });
+
+    // Draft saving
+    saveDraftBtn.addEventListener('click', async function() {
+        const form = document.getElementById('doc-form');
+        const formData = new FormData(form);
+        
+        try {
+            saveDraftBtn.disabled = true;
+            saveDraftBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Saving...';
+            
+            const response = await fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Draft-Save': 'true',
+                    'Accept': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({ message: 'Save failed' }));
+                throw new Error(error.message);
+            }
+            
+            const data = await response.json();
+            showNotification('Draft saved successfully', 'success');
+            
+            // Update form action if this was a new document
+            if (!data.is_update && data.doc_id) {
+                const newAction = form.action.includes('edit') ? 
+                    form.action.replace(/\d+$/, data.doc_id) : 
+                    "{{ url_for('doc_edit', doc_id=0) }}".replace('/0', '/' + data.doc_id);
+                form.action = newAction;
+                history.replaceState(null, '', `?draft=${data.doc_id}`);
+            }
+        } catch (error) {
+            console.error('Save error:', error);
+            showNotification(error.message, 'error');
+        } finally {
+            saveDraftBtn.disabled = false;
+            saveDraftBtn.innerHTML = '<i class="fas fa-save mr-1"></i> Save Draft';
+        }
+    });
+
+    // Notification function
+    function showNotification(message, type) {
+        const existing = document.querySelector('.custom-notification');
+        if (existing) existing.remove();
+        
+        const notification = document.createElement('div');
+        notification.className = `custom-notification fixed bottom-4 right-4 px-4 py-2 rounded-md shadow-lg text-white ${
+            type === 'success' ? 'bg-green-500' : 'bg-red-500'
+        }`;
+        notification.innerHTML = `
+            <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} mr-2"></i>
+            ${message}
+        `;
+        document.body.appendChild(notification);
+        setTimeout(() => notification.remove(), 3000);
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Feature Analysis: {{ feature.name }}</h2>
+        <div class="flex space-x-2">
+            <select id="version-select" onchange="updateAnalysis()"
+                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+                {% for version in feature.versions|sort(attribute='created_at', reverse=True) %}
+                <option value="{{ version.id }}">v{{ version.version }}</option>
+                {% endfor %}
+            </select>
+            <a href="{{ url_for('feature_detail', feature_id=feature.id) }}" class="btn-secondary">
+                <i class="fas fa-arrow-left mr-2"></i> Back
+            </a>
+        </div>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <!-- 统计卡片 -->
+        <div class="bg-blue-50 dark:bg-blue-900 rounded-lg p-4 shadow">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-blue-100 dark:bg-blue-800 text-blue-600 dark:text-blue-300 mr-4">
+                    <i class="fas fa-chart-bar text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-blue-800 dark:text-blue-200">Data Distribution</p>
+                    <p id="stats-distribution" class="text-2xl font-semibold text-blue-600 dark:text-blue-300">-</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-purple-50 dark:bg-purple-900 rounded-lg p-4 shadow">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-purple-100 dark:bg-purple-800 text-purple-600 dark:text-purple-300 mr-4">
+                    <i class="fas fa-percentage text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-purple-800 dark:text-purple-200">Missing Values</p>
+                    <p id="stats-missing" class="text-2xl font-semibold text-purple-600 dark:text-purple-300">-</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-green-50 dark:bg-green-900 rounded-lg p-4 shadow">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-green-100 dark:bg-green-800 text-green-600 dark:text-green-300 mr-4">
+                    <i class="fas fa-ruler text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-green-800 dark:text-green-200">Value Range</p>
+                    <p id="stats-range" class="text-2xl font-semibold text-green-600 dark:text-green-300">-</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 可视化图表 -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-white dark:bg-gray-700 rounded-lg p-4 shadow">
+            <h3 class="font-medium text-gray-800 dark:text-white mb-3">Distribution</h3>
+            <div id="distribution-chart" class="h-64"></div>
+        </div>
+        <div class="bg-white dark:bg-gray-700 rounded-lg p-4 shadow">
+            <h3 class="font-medium text-gray-800 dark:text-white mb-3">Over Time</h3>
+            <div id="temporal-chart" class="h-64"></div>
+        </div>
+    </div>
+    
+    <!-- 数据质量报告 -->
+    <div class="mt-6 bg-white dark:bg-gray-700 rounded-lg p-4 shadow">
+        <h3 class="font-medium text-gray-800 dark:text-white mb-3">Data Quality Report</h3>
+        <div id="quality-report" class="prose dark:prose-dark max-w-none">
+            <p>Select a version to view its data quality report...</p>
+        </div>
+    </div>
+</section>
+
+<!-- 引入图表库 -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/luxon@3.0.1"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.2.0"></script>
+
+<script>
+let distributionChart, temporalChart;
+
+function updateAnalysis() {
+    const versionId = document.getElementById('version-select').value;
+    
+    fetch(`/api/features/${versionId}/analysis`)
+        .then(response => response.json())
+        .then(data => {
+            // 更新统计卡片
+            document.getElementById('stats-distribution').textContent = data.distribution.type;
+            document.getElementById('stats-missing').textContent = `${(data.quality.missing * 100).toFixed(1)}%`;
+            document.getElementById('stats-range').textContent = data.quality.range;
+            
+            // 更新图表
+            updateCharts(data);
+            
+            // 更新质量报告
+            generateQualityReport(data.quality);
+        });
+}
+
+function updateCharts(data) {
+    // 销毁旧图表
+    if (distributionChart) distributionChart.destroy();
+    if (temporalChart) temporalChart.destroy();
+    
+    // 创建分布图表
+    const distCtx = document.getElementById('distribution-chart').getContext('2d');
+    distributionChart = new Chart(distCtx, {
+        type: 'bar',
+        data: {
+            labels: data.distribution.labels,
+            datasets: [{
+                label: 'Count',
+                data: data.distribution.values,
+                backgroundColor: 'rgba(79, 70, 229, 0.7)'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+    
+    // 创建时间图表（如果有时间数据）
+    if (data.temporal) {
+        const tempCtx = document.getElementById('temporal-chart').getContext('2d');
+        temporalChart = new Chart(tempCtx, {
+            type: 'line',
+            data: {
+                labels: data.temporal.labels,
+                datasets: [{
+                    label: 'Value',
+                    data: data.temporal.values,
+                    borderColor: 'rgba(16, 185, 129, 0.7)',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: {
+                            unit: 'day'
+                        }
+                    }
+                }
+            }
+        });
+    }
+}
+
+function generateQualityReport(quality) {
+    const reportDiv = document.getElementById('quality-report');
+    let html = `
+        <h4>Summary</h4>
+        <ul>
+            <li><strong>Completeness:</strong> ${(100 - quality.missing * 100).toFixed(1)}%</li>
+            <li><strong>Uniqueness:</strong> ${(quality.unique * 100).toFixed(1)}%</li>
+            <li><strong>Validity:</strong> ${(quality.valid * 100).toFixed(1)}% (based on schema)</li>
+        </ul>
+        
+        <h4>Statistics</h4>
+        <table>
+            <tr><td>Mean</td><td>${quality.stats.mean || 'N/A'}</td></tr>
+            <tr><td>Std Dev</td><td>${quality.stats.std || 'N/A'}</td></tr>
+            <tr><td>Min</td><td>${quality.stats.min || 'N/A'}</td></tr>
+            <tr><td>25%</td><td>${quality.stats['25%'] || 'N/A'}</td></tr>
+            <tr><td>50%</td><td>${quality.stats['50%'] || 'N/A'}</td></tr>
+            <tr><td>75%</td><td>${quality.stats['75%'] || 'N/A'}</td></tr>
+            <tr><td>Max</td><td>${quality.stats.max || 'N/A'}</td></tr>
+        </table>
+        
+        <h4>Recommendations</h4>
+        <ul>
+    `;
+    
+    if (quality.missing > 0.1) {
+        html += `<li>Consider imputation for missing values (${(quality.missing * 100).toFixed(1)}% missing)</li>`;
+    }
+    if (quality.unique < 0.01) {
+        html += `<li>Low uniqueness (${(quality.unique * 100).toFixed(1)}%), consider if this feature is useful</li>`;
+    }
+    if (quality.valid < 0.95) {
+        html += `<li>Check data quality (${(quality.valid * 100).toFixed(1)}% valid according to schema)</li>`;
+    }
+    
+    html += `</ul>`;
+    reportDiv.innerHTML = html;
+}
+
+// 初始化加载第一个版本的分析
+document.addEventListener('DOMContentLoaded', function() {
+    updateAnalysis();
+});
+</script>
+{% endblock %}

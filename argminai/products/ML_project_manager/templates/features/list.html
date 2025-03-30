@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Feature Management</h2>
+        <div class="flex space-x-2">
+            <form method="GET" class="flex items-center">
+                <select name="project_id" onchange="this.form.submit()"
+                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+                    <option value="">All Projects</option>
+                    {% for project in projects %}
+                    <option value="{{ project.id }}" {% if selected_project_id|default(None) == project.id %}selected{% endif %}>
+                        {{ project.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </form>
+            <a href="{{ url_for('feature_create') }}" 
+               class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center">
+                <i class="fas fa-plus mr-2"></i> New Feature
+            </a>
+        </div>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-600">
+            <thead class="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                    <th class="px-6 py-3 text-left">Feature</th>
+                    <th class="px-6 py-3 text-left">Type</th>
+                    <th class="px-6 py-3 text-left">Versions</th>
+                    <th class="px-6 py-3 text-left">Last Updated</th>
+                    <th class="px-6 py-3 text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-600">
+                {% for feature in features %}
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td class="px-6 py-4">
+                        <div class="font-medium text-indigo-600 dark:text-indigo-400">
+                            <a href="{{ url_for('feature_detail', feature_id=feature.id) }}" class="hover:underline">
+                                {{ feature.name }}
+                            </a>
+                        </div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                            {{ feature.short_description if feature.short_description else 'No short description' }}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs rounded-full bg-{{ 'blue' if feature.data_type == 'number' else 'purple' }}-100 text-{{ 'blue' if feature.data_type == 'number' else 'purple' }}-800 dark:bg-{{ 'blue' if feature.data_type == 'number' else 'purple' }}-900 dark:text-{{ 'blue' if feature.data_type == 'number' else 'purple' }}-200">
+                            {{ feature.data_type }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-gray-500 dark:text-gray-400">
+                        {{ feature.versions|length }} versions
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                        {{ feature.updated_at.strftime('%Y-%m-%d %H:%M') }}
+                    </td>
+                    <!-- 在features/list.html中找到操作按钮部分，修改为： -->
+                    <td class="px-6 py-4 text-right space-x-2">
+                        <a href="{{ url_for('feature_detail', feature_id=feature.id) }}" 
+                           class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                        <a href="{{ url_for('feature_edit', feature_id=feature.id) }}" 
+                           class="text-yellow-600 hover:text-yellow-900 dark:text-yellow-400 dark:hover:text-yellow-300">
+                            <i class="fas fa-pencil-alt"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<!-- 创建模态框 -->
+{% include 'features/_create_modal.html' %}
+{% endblock %}

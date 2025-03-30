@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-800 dark:text-white">
+                版本: v{{ version.version }}
+            </h2>
+            <div class="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                <span class="font-medium">项目:</span> {{ current_project.name }} |
+                <span class="font-medium">作者:</span> {{ version.author.username }} |
+                <span class="font-medium">时间:</span> {{ version.created_at.strftime('%Y-%m-%d %H:%M') }}
+            </div>
+        </div>
+        <div>
+            <a href="{{ url_for('code_list', project_id=current_project.id) }}" 
+               class="btn-secondary">
+                <i class="fas fa-arrow-left mr-2"></i>返回
+            </a>
+        </div>
+    </div>
+
+    <div class="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+        <h3 class="font-medium mb-2">提交说明</h3>
+        <p class="whitespace-pre-line">{{ version.commit_message or "无说明" }}</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <!-- 文件浏览器 -->
+        <div class="md:col-span-1">
+            {% include "code/_file_browser.html" %}
+        </div>
+        
+        <!-- 代码预览区 -->
+        <div class="md:col-span-3">
+            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg shadow overflow-hidden">
+                <div class="p-3 border-b border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-600">
+                    <div class="flex items-center">
+                        <i class="fas fa-file-code text-blue-500 mr-2"></i>
+                        <span id="filename-display" class="font-mono">选择文件查看内容</span>
+                    </div>
+                </div>
+                <div class="p-4">
+                    <pre id="code-content"><code class="language-plaintext">// 从左侧选择文件查看内容</code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+// 文件加载逻辑
+async function loadFileContent(filePath, fileName) {
+    try {
+        const response = await fetch(`/api/code/file?path=${encodeURIComponent(filePath)}`);
+        if (!response.ok) throw new Error('文件加载失败');
+        
+        const data = await response.json();
+        document.getElementById('filename-display').textContent = fileName;
+        
+        const codeContent = document.getElementById('code-content');
+        codeContent.textContent = data.content;
+        codeContent.className = `language-${data.language || 'plaintext'}`;
+        
+        // 高亮代码
+        if (window.hljs) {
+            hljs.highlightElement(codeContent);
+        }
+    } catch (error) {
+        console.error('Error loading file:', error);
+        alert(error.message);
+    }
+}
+</script>
+{% endblock %}

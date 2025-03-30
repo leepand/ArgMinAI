@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-gray-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ML Project Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- 在 base.html 的 head 部分添加 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/python.min.js"> 
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/javascript.min.js"></script>
+    <!-- MathJax 公式支持 -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>hljs.highlightAll();</script>
+    <style>
+    /* 编辑器统一高度和滚动 */
+    .editor-container {
+        display: flex;
+        flex-direction: column;
+        height: 500px;  /* 固定高度 */
+    }
+    
+    .editor-textarea {
+        flex: 1;
+        min-height: 100%;
+        resize: none;
+    }
+    
+    .preview-container {
+        height: 500px;  /* 与编辑器相同高度 */
+        overflow-y: auto;
+    }
+    
+    /* 版本对比结果区域 */
+    .diff-container {
+        max-height: 600px;
+        overflow-y: auto;
+    }
+    /* 确保所有flex容器正确处理溢出 */
+    .flex-col.min-h-0 {
+        min-height: 0;
+    }
+    
+    /* 编辑器区域滚动优化 */
+    .editor-container {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+    
+    .editor-textarea, .preview-container {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+    }
+    
+    /* 页脚定位优化 */
+    footer {
+        flex-shrink: 0;
+    }
+    .prose {
+    max-width: 100%;
+    line-height: 1.6;
+    color: #374151; /* gray-700 */
+}
+
+.prose.dark {
+    color: #d1d5db; /* gray-300 */
+}
+
+.prose h1, .prose h2, .prose h3 {
+    margin-top: 1.5em;
+    margin-bottom: 0.5em;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.prose h1 { font-size: 2em; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.3em; }
+.prose h2 { font-size: 1.5em; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.3em; }
+.prose h3 { font-size: 1.25em; }
+
+.prose code {
+    background-color: rgba(175, 184, 193, 0.2);
+    border-radius: 6px;
+    padding: 0.2em 0.4em;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.prose pre {
+    background-color: #f8f8f8;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    overflow-x: auto;
+    margin: 1em 0;
+    line-height: 1.45;
+}
+
+.dark .prose pre {
+    background-color: #2d3748; /* gray-800 */
+}
+
+.prose blockquote {
+    border-left: 4px solid #e5e7eb;
+    padding-left: 1em;
+    margin-left: 0;
+    color: #6b7280; /* gray-500 */
+}
+
+.prose table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1em 0;
+}
+
+.prose th, .prose td {
+    border: 1px solid #e5e7eb;
+    padding: 0.5em 1em;
+}
+
+.prose img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.5rem;
+}
+
+/* 数学公式样式 */
+.prose .math {
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+.nav-link {
+    transition: all 0.2s ease;
+    border-bottom-width: 2px;
+}
+
+.nav-link:hover {
+    border-color: rgba(156, 163, 175, 0.5); /* gray-400 */
+}
+/* 表格样式修复 */
+
+
+
+/* 版本历史卡片容器 */
+/* 版本历史主容器 */
+.version-history-container {
+    background-color: #fff;
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(209, 213, 219, 0.3);
+    overflow: hidden;
+    margin-top: 1.5rem;
+}
+
+/* 暗黑模式适配 */
+.dark .version-history-container {
+    background-color: #1f2937;
+    border-color: rgba(55, 65, 81, 0.5);
+}
+/* 表格基础 */
+.version-history {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 640px;
+}
+
+/* 表头样式 */
+.version-history thead {
+    background-color: #f9fafb;
+    border-bottom-width: 1px;
+}
+
+.dark .version-history thead {
+    background-color: rgba(31, 41, 55, 0.5);
+}
+
+.version-history th {
+    padding: 0.75rem 1.5rem;
+    text-align: left;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #6b7280;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    position: relative;
+}
+
+.dark .version-history th {
+    color: #9ca3af;
+}
+
+/* 表头分隔线 */
+.version-history th:after {
+    content: "";
+    position: absolute;
+    right: 0;
+    top: 50%;
+    height: 1rem;
+    width: 1px;
+    background-color: #e5e7eb;
+    transform: translateY(-50%);
+}
+
+.dark .version-history th:after {
+    background-color: #4b5563;
+}
+
+.version-history th:last-child:after {
+    display: none;
+}
+
+/* 表格行 */
+.version-history tbody tr {
+    border-bottom: 1px solid #f3f4f6;
+    transition: background-color 0.2s ease;
+}
+
+.dark .version-history tbody tr {
+    border-bottom-color: rgba(55, 65, 81, 0.5);
+}
+
+.version-history tbody tr:hover {
+    background-color: rgba(249, 250, 251, 0.5);
+}
+
+.dark .version-history tbody tr:hover {
+    background-color: rgba(55, 65, 81, 0.3);
+}
+
+/* 表格单元格 */
+.version-history td {
+    padding: 1rem 1.5rem;
+    white-space: nowrap;
+    font-size: 0.875rem;
+    vertical-align: middle;
+}
+
+/* 斑马条纹 */
+.version-history tbody tr:nth-child(even) {
+    background-color: #f9fafb;
+}
+
+.dark .version-history tbody tr:nth-child(even) {
+    background-color: rgba(31, 41, 55, 0.5);
+}
+/* 版本标签 */
+.version-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.625rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+/* 蓝色版本标签 */
+.version-badge.blue {
+    background-color: #dbeafe;
+    color: #1e40af;
+}
+
+.dark .version-badge.blue {
+    background-color: rgba(29, 78, 216, 0.2);
+    color: #93c5fd;
+}
+
+/* 操作按钮容器 */
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+}
+
+/* 操作按钮 */
+.action-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+/* 查看按钮 */
+.view-btn {
+    background-color: #e0e7ff;
+    color: #3730a3;
+}
+
+.dark .view-btn {
+    background-color: rgba(67, 56, 202, 0.2);
+    color: #a5b4fc;
+}
+
+.view-btn:hover {
+    background-color: #c7d2fe;
+}
+
+/* 下载按钮 */
+.download-btn {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+.dark .download-btn {
+    background-color: rgba(22, 101, 52, 0.2);
+    color: #86efac;
+}
+
+.download-btn:hover {
+    background-color: #bbf7d0;
+}
+@media (max-width: 768px) {
+    .version-history-container {
+        border: none;
+        box-shadow: none;
+        background-color: transparent;
+    }
+    
+    .version-history {
+        display: block;
+    }
+    
+    .version-history thead {
+        display: none;
+    }
+    
+    .version-history tbody, 
+    .version-history tr, 
+    .version-history td {
+        display: block;
+    }
+    
+    .version-history tr {
+        margin-bottom: 1rem;
+        padding: 1rem;
+        background-color: #fff;
+        border-radius: 0.5rem;
+        border: 1px solid #e5e7eb;
+    }
+    
+    .dark .version-history tr {
+        background-color: #1f2937;
+        border-color: #374151;
+    }
+    
+    .version-history td {
+        padding: 0.5rem 0;
+        display: grid;
+        grid-template-columns: 100px 1fr;
+    }
+    
+    .version-history td:before {
+        font-weight: 600;
+        color: #4b5563;
+        content: attr(data-label);
+    }
+    
+    .dark .version-history td:before {
+        color: #9ca3af;
+    }
+    
+    .version-history td .action-buttons {
+        grid-column: 1 / -1;
+        margin-top: 0.5rem;
+        justify-content: flex-start;
+    }
+    
+    /* 添加数据标签 */
+    .version-history td:nth-child(1):before { content: "Version"; }
+    .version-history td:nth-child(2):before { content: "Files"; }
+    .version-history td:nth-child(3):before { content: "Size"; }
+    .version-history td:nth-child(4):before { content: "Author"; }
+    .version-history td:nth-child(5):before { content: "Date"; }
+}
+</style>
+</head>
+<body class="h-full flex flex-col">
+    <!-- 导航栏 -->
+    {% include 'components/navbar.html' %}
+    
+    <!-- 主内容区 -->
+    <!-- 主内容区 - 改为flex-grow -->
+    <main class="flex-grow">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+    
+    <!-- 页脚 -->
+    <!-- 页脚 -->
+    {% if not hide_footer %}
+        {% include 'components/footer.html' %}
+    {% endif %}
+    
+    <!-- 脚本 -->
+    <script>
+        // 更新实时预览逻辑
+        contentTextarea.addEventListener('input', function() {
+            // 先清空
+            previewDiv.innerHTML = marked.parse(this.value);
+            
+            // 重新高亮代码块
+            document.querySelectorAll('pre code').forEach((block) => {
+                hljs.highlightElement(block);
+            });
+            
+            // 渲染数学公式（如果需要）
+            if (typeof MathJax !== 'undefined') {
+                MathJax.typeset();
+            }
+        });
+                
+        // 暗色模式切换
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeIcon = document.getElementById('theme-icon');
+        const html = document.documentElement;
+        
+        if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            html.classList.add('dark');
+            themeIcon.classList.replace('fa-moon', 'fa-sun');
+        }
+        
+        themeToggle.addEventListener('click', () => {
+            html.classList.toggle('dark');
+            localStorage.setItem('theme', html.classList.contains('dark') ? 'dark' : 'light');
+            themeIcon.classList.toggle('fa-moon');
+            themeIcon.classList.toggle('fa-sun');
+        });
+        
+        // 导航栏激活状态
+        document.querySelectorAll('.nav-link').forEach(link => {
+            if (link.getAttribute('href') === window.location.pathname) {
+                link.classList.add('border-indigo-500', 'text-gray-900', 'dark:text-white');
+                link.classList.remove('border-transparent', 'text-gray-500', 'dark:text-gray-300');
+            }
+        });
+    </script>
+</body>
+</html>

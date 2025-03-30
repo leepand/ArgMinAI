@@ -1,0 +1,249 @@
+<!-- templates/features/form.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<section class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold text-gray-800 dark:text-white">
+            {% if is_edit %}Edit{% else %}Create New{% endif %} Feature
+        </h2>
+        <a href="{% if is_edit %}{{ url_for('feature_detail', feature_id=feature.id) }}{% else %}{{ url_for('feature_list') }}{% endif %}" 
+           class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+            <i class="fas fa-times"></i>
+        </a>
+    </div>
+
+    <form method="POST" action="{% if is_edit %}{{ url_for('feature_edit', feature_id=feature.id) }}{% else %}{{ url_for('feature_create') }}{% endif %}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Feature Name*</label>
+                    <input type="text" name="name" value="{% if is_edit %}{{ feature.name }}{% endif %}" required
+                           class="w-full p-2.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Data Type*</label>
+                    <!-- 修改数据类型选项 -->
+<select name="data_type" id="data-type" required
+        class="w-full p-2.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700">
+    {% for type in data_types %}
+    <option value="{{ type }}" {% if is_edit and feature.data_type == type %}selected{% endif %}>{{ type|capitalize }}</option>
+    {% endfor %}
+</select>
+
+<!-- 添加自动生成按钮 -->
+<div class="mt-2 flex justify-end">
+    <button type="button" onclick="generateSampleData()"
+            class="text-sm bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white px-3 py-1 rounded-md">
+        <i class="fas fa-magic mr-1"></i> Auto-generate
+    </button>
+</div>
+                    
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Project</label>
+                    <select name="project_id"
+                            class="w-full p-2.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700">
+                        {% for project in projects %}
+                        <option value="{{ project.id }}" {% if is_edit and feature.project_id == project.id %}selected{% endif %}>{{ project.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            
+            <!-- 简短描述 -->
+<div class="mb-4">
+    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Short Description*</label>
+    <input type="text" name="short_description" 
+           value="{% if is_edit %}{{ feature.short_description }}{% endif %}" required
+           class="w-full p-2.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700"
+           placeholder="Brief description for listing pages (max 200 chars)">
+</div>
+
+<!-- 详细描述 -->
+<div class="mb-4">
+    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Detailed Description</label>
+    <textarea name="long_description" rows="4"
+              class="w-full p-2.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700"
+              placeholder="Full description with markdown support">{% if is_edit %}{{ feature.long_description }}{% endif %}</textarea>
+</div>
+            
+        </div>
+
+        {% if not is_edit %}
+        <div class="mt-6 border-t pt-4">
+            <h4 class="font-medium text-gray-800 dark:text-white mb-3">Initial Version</h4>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sample Data (JSON)</label>
+                    <textarea name="sample_data" rows="4"
+                              class="w-full p-2.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 font-mono text-xs"
+                              placeholder='{"example1": 0.5, "example2": "text"}'></textarea>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Schema Definition (JSON)</label>
+                    <textarea name="schema_definition" rows="4"
+                              class="w-full p-2.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 font-mono text-xs"
+                              placeholder='{"type": "number", "min": 0, "max": 1}'></textarea>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="flex justify-end mt-6 space-x-3">
+            <a href="{% if is_edit %}{{ url_for('feature_detail', feature_id=feature.id) }}{% else %}{{ url_for('feature_list') }}{% endif %}"
+               class="bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white px-4 py-2 rounded-md text-sm font-medium">
+                Cancel
+            </a>
+            <button type="submit"
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+                {% if is_edit %}Update{% else %}Create{% endif %} Feature
+            </button>
+        </div>
+    </form>
+</section>
+<script>
+// 根据名称和类型生成样例数据
+function generateSampleData() {
+    const featureName = document.querySelector('input[name="name"]').value;
+    const dataType = document.getElementById('data-type').value;
+    
+    if (!featureName) {
+        alert('Please enter feature name first');
+        return;
+    }
+
+    // 自动生成建议描述
+    const typeDescriptions = {
+        'number': 'Numerical value representing',
+        'string': 'Text value describing',
+        'boolean': 'Boolean flag indicating',
+        'datetime': 'Timestamp recording',
+        'array': 'Collection of',
+        'tensor': 'Multi-dimensional array of',
+        'dict': 'Key-value pairs representing'
+    };
+    
+    const shortDesc = `${typeDescriptions[dataType] || 'Feature representing'} ${featureName.replace(/_/g, ' ')}`;
+    document.querySelector('input[name="short_description"]').value = shortDesc;
+    
+    const longDesc = `## About ${featureName}\n\nThis feature ${
+        typeDescriptions[dataType] || 'represents'
+    } ${featureName.replace(/_/g, ' ')} in the system.\n\n### Usage\n\n- Used for...\n- Important for...\n\n### Example\n\nSee sample data below for typical values.`;
+    document.querySelector('textarea[name="long_description"]').value = longDesc;
+
+    let sampleData = {};
+    let schema = {};
+    
+    // 根据不同类型生成不同样例
+    switch(dataType) {
+        case 'number':
+            sampleData = {
+                [`${featureName}_example1`]: 0.5,
+                [`${featureName}_example2`]: 1.0
+            };
+            schema = {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1,
+                "description": `The ${featureName} feature value`
+            };
+            break;
+            
+        case 'string':
+            sampleData = {
+                [`${featureName}_example1`]: "text_value",
+                [`${featureName}_example2`]: "another_value"
+            };
+            schema = {
+                "type": "string",
+                "maxLength": 100,
+                "description": `The ${featureName} feature value`
+            };
+            break;
+            
+        case 'boolean':
+            sampleData = {
+                [`${featureName}_example1`]: true,
+                [`${featureName}_example2`]: false
+            };
+            schema = {
+                "type": "boolean",
+                "description": `Whether ${featureName} is present`
+            };
+            break;
+            
+        case 'datetime':
+            sampleData = {
+                [`${featureName}_example1`]: "2023-01-01T00:00:00Z",
+                [`${featureName}_example2`]: "2023-01-02T12:34:56Z"
+            };
+            schema = {
+                "type": "string",
+                "format": "date-time",
+                "description": `The ${featureName} timestamp`
+            };
+            break;
+            
+        case 'array':
+            sampleData = {
+                [`${featureName}_example1`]: [1, 2, 3],
+                [`${featureName}_example2`]: ["a", "b", "c"]
+            };
+            schema = {
+                "type": "array",
+                "items": {
+                    "type": ["number", "string"]
+                },
+                "description": `The ${featureName} list`
+            };
+            break;
+            
+        case 'tensor':
+            sampleData = {
+                [`${featureName}_example1`]: [[1, 2], [3, 4]],
+                [`${featureName}_example2`]: [[0.1, 0.2], [0.3, 0.4]]
+            };
+            schema = {
+                "type": "array",
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    }
+                },
+                "description": `The ${featureName} tensor`
+            };
+            break;
+            
+        case 'dict':
+            sampleData = {
+                [`${featureName}_example1`]: {"key1": "value1", "key2": 123},
+                [`${featureName}_example2`]: {"a": 1, "b": 2, "c": 3}
+            };
+            schema = {
+                "type": "object",
+                "additionalProperties": {
+                    "type": ["string", "number"]
+                },
+                "description": `The ${featureName} dictionary`
+            };
+            break;
+    }
+    
+    // 填充表单
+    document.querySelector('textarea[name="sample_data"]').value = JSON.stringify(sampleData, null, 2);
+    document.querySelector('textarea[name="schema_definition"]').value = JSON.stringify(schema, null, 2);
+}
+
+// 监听名称和类型变化
+document.querySelector('input[name="name"]').addEventListener('input', generateSampleData);
+document.getElementById('data-type').addEventListener('change', generateSampleData);
+</script>
+{% endblock %}

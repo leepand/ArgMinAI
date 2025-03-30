@@ -1,0 +1,29 @@
+<div class="bg-gray-50 dark:bg-gray-700 rounded-lg shadow overflow-hidden">
+    <div class="p-4 border-b border-gray-200 dark:border-gray-600">
+        <h3 class="font-medium text-gray-800 dark:text-white">文件浏览器</h3>
+    </div>
+    <div class="p-2 overflow-y-auto" style="max-height: 60vh;">
+        {% if files %}
+        <ul class="space-y-1">
+            {% for file in files %}
+            <li>
+                <button onclick="loadFileContent('{{ file.path }}', '{{ file.name }}')"
+                        class="w-full text-left px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-md flex items-center">
+                    <i class="fas fa-{{ 'folder' if file.is_dir else 'file-code' }} mr-2 text-{{ 'yellow' if file.is_dir else 'blue' }}-500"></i>
+                    <span class="truncate">{{ file.name }}</span>
+                    {% if not file.is_dir %}
+                    <span class="ml-auto text-xs text-gray-500 dark:text-gray-400">
+                        {{ file.size|filesizeformat }}
+                    </span>
+                    {% endif %}
+                </button>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <div class="p-4 text-center text-gray-500 dark:text-gray-400">
+            该版本没有文件
+        </div>
+        {% endif %}
+    </div>
+</div>
