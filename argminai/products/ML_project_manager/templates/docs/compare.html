@@ -13,6 +13,7 @@
     <form method="POST" class="mb-6">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <label for="from_version" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">From Version</label>
                 <select id="from_version" name="from_version" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
                     {% for version in all_versions %}

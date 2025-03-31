@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold text-gray-800 dark:text-white">活动反馈 - {{ campaign.name }}</h2>
+        <a href="{{ url_for('campaign_detail', campaign_id=campaign.id) }}" 
+           class="bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white px-4 py-2 rounded-md text-sm font-medium">
+            返回活动详情
+        </a>
+    </div>
+
+    <div class="mb-6">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">反馈统计</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-blue-50 dark:bg-blue-900 p-4 rounded-lg">
+                <p class="text-sm text-blue-800 dark:text-blue-200">总反馈数</p>
+                <p class="text-2xl font-bold text-blue-600 dark:text-blue-300">{{ feedbacks.total }}</p>
+            </div>
+            <div class="bg-green-50 dark:bg-green-900 p-4 rounded-lg">
+                <p class="text-sm text-green-800 dark:text-green-200">平均评分</p>
+                <p class="text-2xl font-bold text-green-600 dark:text-green-300">
+                    {% if feedbacks.items %}
+                        {{ "%.1f"|format((feedbacks.items | sum(attribute='rating') / feedbacks.items|length) if feedbacks.items else 0) }}/5
+                    {% else %}
+                        0/5
+                    {% endif %}
+                </p>
+            </div>
+            <div class="bg-purple-50 dark:bg-purple-900 p-4 rounded-lg">
+                <p class="text-sm text-purple-800 dark:text-purple-200">最新反馈</p>
+                <p class="text-lg text-purple-600 dark:text-purple-300">
+                    {{ feedbacks.items[0].created_at.strftime('%Y-%m-%d %H:%M') if feedbacks.items else '无' }}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 其余部分保持不变 -->
+</section>
+{% endblock %}

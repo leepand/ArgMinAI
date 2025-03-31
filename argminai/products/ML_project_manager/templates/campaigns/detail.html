@@ -1,0 +1,52 @@
+{# templates/campaigns/detail.html #}
+{% extends "base.html" %}
+
+{% block content %}
+<section class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold text-gray-800 dark:text-white">活动详情</h2>
+        <a href="{{ url_for('campaign_list') }}" 
+           class="bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white px-4 py-2 rounded-md text-sm font-medium">
+            返回列表
+        </a>
+    </div>
+
+    <div class="space-y-4">
+        <div>
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white">基本信息</h3>
+            <div class="mt-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">活动名称</p>
+                    <p class="mt-1 text-sm text-gray-900 dark:text-white">{{ campaign.name }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">目标分群</p>
+                    <p class="mt-1 text-sm text-gray-900 dark:text-white">{{ campaign.segment.name }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">开始时间</p>
+                    <p class="mt-1 text-sm text-gray-900 dark:text-white">{{ campaign.start_time.strftime('%Y-%m-%d %H:%M') }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">结束时间</p>
+                    <p class="mt-1 text-sm text-gray-900 dark:text-white">{{ campaign.end_time.strftime('%Y-%m-%d %H:%M') }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white">策略配置</h3>
+            <div class="mt-2 p-4 bg-gray-50 dark:bg-gray-700 rounded-md">
+                <pre class="text-sm text-gray-900 dark:text-gray-300 whitespace-pre-wrap">{{ campaign.strategy }}</pre>
+            </div>
+        </div>
+
+        <div class="flex justify-end space-x-3">
+            <a href="{{ url_for('campaign_edit', campaign_id=campaign.id) }}" 
+               class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+                编辑
+            </a>
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold text-gray-800 dark:text-white">
+            {% if is_edit %}Edit{% else %}Create{% endif %} User Segment
+        </h2>
+        <a href="{{ url_for('segment_list') }}" 
+           class="bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white px-4 py-2 rounded-md text-sm font-medium">
+            Back to Segments
+        </a>
+    </div>
+    
+    <form method="POST" id="segmentForm">
+        {{ form.hidden_tag() }}
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+                {{ form.name.label(class="block text-gray-700 dark:text-gray-300 mb-2") }}
+                {{ form.name(class="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white") }}
+                {% for error in form.name.errors %}
+                <p class="text-red-500 text-sm mt-1">{{ error }}</p>
+                {% endfor %}
+            </div>
+            
+            <div>
+                {{ form.project_id.label(class="block text-gray-700 dark:text-gray-300 mb-2") }}
+                {{ form.project_id(class="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white") }}
+            </div>
+        </div>
+        
+        <div class="mt-6">
+            {{ form.description.label(class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1") }}
+            {{ form.description(class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white", rows=3) }}
+        </div>
+        
+        <div class="mt-6">
+            {{ form.filter_rules.label(class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1") }}
+            {{ form.filter_rules(class="w-full px-3 py-2 font-mono text-sm border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white", rows=6) }}
+            {% for error in form.filter_rules.errors %}
+            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+            {% endfor %}
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                Define user filtering rules in JSON format. Example: {"role": "premium", "last_login": {"$gt": "2023-01-01"}}
+            </p>
+        </div>
+        
+        <div class="flex justify-end mt-6">
+            <button type="submit"
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+                {% if is_edit %}Update{% else %}Create{% endif %} Segment
+            </button>
+        </div>
+    </form>
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Validate JSON format
+    const filterRules = document.querySelector('#filter_rules');
+    const form = document.querySelector('#segmentForm');
+    
+    if (filterRules && form) {
+        form.addEventListener('submit', function(e) {
+            try {
+                if (filterRules.value) {
+                    JSON.parse(filterRules.value);
+                }
+            } catch (err) {
+                e.preventDefault();
+                alert('Invalid JSON format in filter rules');
+                filterRules.focus();
+            }
+        });
+    }
+    
+    // Date validation
+    const startDate = document.querySelector('#start_date');
+    const endDate = document.querySelector('#end_date');
+    
+    if (startDate && endDate) {
+        endDate.addEventListener('change', function() {
+            const start = new Date(startDate.value);
+            const end = new Date(this.value);
+            
+            if (end < start) {
+                alert('End date cannot be before start date');
+                this.value = startDate.value;
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

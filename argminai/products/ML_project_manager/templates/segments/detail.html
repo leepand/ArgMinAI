@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-800 dark:text-white">{{ segment.name }}</h2>
+            <div class="flex items-center mt-2">
+                <span class="text-sm text-gray-600 dark:text-gray-300">
+                    {% if segment.project %}
+                    Project: <a href="{{ url_for('project_detail', project_id=segment.project.id) }}" class="font-medium hover:underline">{{ segment.project.name }}</a> | 
+                    {% endif %}
+                    Users: <span class="font-medium">{{ user_count }}</span> | 
+                    Last Updated: <span class="font-medium">{{ segment.updated_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                </span>
+            </div>
+        </div>
+        <div class="flex space-x-2">
+            <a href="{{ url_for('segment_list') }}" 
+               class="bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white px-4 py-2 rounded-md text-sm font-medium">
+                Back to Segments
+            </a>
+            <a href="{{ url_for('segment_edit', segment_id=segment.id) }}" 
+               class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+                Edit Segment
+            </a>
+        </div>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="md:col-span-2">
+            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 shadow overflow-hidden mb-6">
+                <h3 class="font-medium text-gray-800 dark:text-white mb-3">Segment Description</h3>
+                <div class="prose dark:prose-invert max-w-none">
+                    {{ segment.description|markdown }}
+                </div>
+            </div>
+            
+            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 shadow overflow-hidden">
+                <h3 class="font-medium text-gray-800 dark:text-white mb-3">Filter Rules</h3>
+                <pre class="bg-gray-100 dark:bg-gray-800 p-4 rounded overflow-x-auto text-sm">{{ filter_rules|tojson(indent=2) }}</pre>
+            </div>
+        </div>
+        
+        <div class="md:col-span-1">
+            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg shadow overflow-hidden mb-6">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-600">
+                    <h3 class="font-medium text-gray-800 dark:text-white">User Actions</h3>
+                </div>
+                <div class="p-4">
+                    <a href="{{ url_for('segment_users', segment_id=segment.id) }}" 
+                       class="block w-full bg-blue-50 hover:bg-blue-100 text-blue-800 dark:bg-blue-900 dark:hover:bg-blue-800 dark:text-blue-100 px-4 py-2 rounded-md text-sm font-medium mb-2 text-center">
+                        <i class="fas fa-users mr-2"></i> View Users
+                    </a>
+                    <a href="{{ url_for('segment_import_users', segment_id=segment.id) }}" 
+                       class="block w-full bg-green-50 hover:bg-green-100 text-green-800 dark:bg-green-900 dark:hover:bg-green-800 dark:text-green-100 px-4 py-2 rounded-md text-sm font-medium mb-2 text-center">
+                        <i class="fas fa-file-import mr-2"></i> Import Users
+                    </a>
+                    <a href="{{ url_for('segment_export_users', segment_id=segment.id) }}" 
+                       class="block w-full bg-purple-50 hover:bg-purple-100 text-purple-800 dark:bg-purple-900 dark:hover:bg-purple-800 dark:text-purple-100 px-4 py-2 rounded-md text-sm font-medium text-center">
+                        <i class="fas fa-file-export mr-2"></i> Export Users
+                    </a>
+                </div>
+            </div>
+            
+            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg shadow overflow-hidden">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-600">
+                    <h3 class="font-medium text-gray-800 dark:text-white">Related Campaigns</h3>
+                </div>
+                <div class="p-4">
+                    {% if campaigns %}
+                    <ul class="space-y-2">
+                        {% for campaign in campaigns %}
+                        <li>
+                            <a href="{{ url_for('campaign_detail', campaign_id=campaign.id) }}" 
+                               class="flex items-center px-3 py-2 text-sm font-medium rounded-md bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white">
+                                <span class="truncate">{{ campaign.name }}</span>
+                                <span class="ml-auto text-xs text-gray-500 dark:text-gray-400">
+                                    {{ campaign.status|capitalize }}
+                                </span>
+                            </a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="text-sm text-gray-500 dark:text-gray-400">No campaigns yet</p>
+                    {% endif %}
+                    
+                    <a href="{{ url_for('campaign_create', segment_id=segment.id) }}" 
+                       class="mt-3 block w-full bg-indigo-50 hover:bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:hover:bg-indigo-800 dark:text-indigo-100 px-4 py-2 rounded-md text-sm font-medium text-center">
+
+                        <i class="fas fa-plus mr-2"></i> New Campaign
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, jsonify, flash,send_file
+from flask import Flask, render_template, request, redirect, url_for, jsonify, flash,send_file,session
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.utils import secure_filename
 from datetime import datetime
@@ -38,13 +38,47 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 # 确保上传目录存在
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
+from flask_wtf import FlaskForm
+from wtforms import StringField, TextAreaField, SelectField, DateTimeField,StringField
+from wtforms.validators import DataRequired,Optional
+from wtforms.fields import DateField
+
+
+class SegmentForm(FlaskForm):
+    name = StringField('Segment Name', validators=[DataRequired()])
+    description = TextAreaField('Description')
+    project_id = SelectField('Project', coerce=int, validators=[Optional()])
+    filter_rules = TextAreaField('Filter Rules', validators=[DataRequired()])
 project_tags = db.Table('project_tags',
         db.Column('project_id', db.Integer, db.ForeignKey('project.id'), primary_key=True),
         db.Column('tag_id', db.Integer, db.ForeignKey('tag.id'), primary_key=True)
     )
 
+
+class CampaignForm(FlaskForm):
+    name = StringField('活动名称', validators=[DataRequired()])
+    description = TextAreaField('活动描述')
+    segment_id = SelectField('目标分群', coerce=int, validators=[DataRequired()])
+    strategy = TextAreaField('策略配置')
+    
+    # 修改为日期选择器字段
+    start_date = DateField('开始日期', format='%Y-%m-%d', validators=[DataRequired()])
+    start_time = SelectField('开始时间', choices=[
+        ('09:00', '09:00 AM'),
+        ('10:00', '10:00 AM'),
+        # 添加更多时间选项...
+    ], validators=[DataRequired()])
+    
+    end_date = DateField('结束日期', format='%Y-%m-%d', validators=[DataRequired()])
+    end_time = SelectField('结束时间', choices=[
+        ('17:00', '05:00 PM'),
+        ('18:00', '06:00 PM'),
+        # 添加更多时间选项...
+    ], validators=[DataRequired()])
+
 # 数据库模型
 class User(db.Model):
+    # 保持原有字段完全不变 ▼▼▼
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
@@ -54,6 +88,7 @@ class User(db.Model):
     
     def __repr__(self):
         return f'<User {self.username}>'
+
 
 class Project(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -187,6 +222,81 @@ feature_tags = db.Table('feature_tags',
     db.Column('feature_id', db.Integer, db.ForeignKey('feature.id')),
     db.Column('tag_id', db.Integer, db.ForeignKey('tag.id'))
 )
+
+
+# 在现有模型后添加以下模型
+class UserSegment(db.Model):
+    """用户分群模型"""
+    __tablename__ = 'user_segment'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text)
+    project_id = db.Column(db.Integer, db.ForeignKey('project.id'), nullable=True)
+    filter_rules = db.Column(db.Text)  # JSON格式的过滤规则
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # 明确指定关系
+    project = db.relationship('Project', backref=db.backref('segments', lazy=True))
+    creator = db.relationship('User', backref=db.backref('created_segments', lazy=True))
+    
+    # 修复多对多关系
+    users = db.relationship(
+        'User',
+        secondary='segment_users',
+        primaryjoin='UserSegment.id == SegmentUser.segment_id',
+        secondaryjoin='User.id == SegmentUser.user_id',
+        backref=db.backref('segments', lazy=True)
+    )
+    
+    campaigns = db.relationship('Campaign', backref=db.backref('segment', lazy=True))
+
+class SegmentUser(db.Model):
+    """分群用户关联表"""
+    __tablename__ = 'segment_users'
+    
+    segment_id = db.Column(db.Integer, db.ForeignKey('user_segment.id'), primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
+    added_at = db.Column(db.DateTime, default=datetime.utcnow)
+    added_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    
+    # 明确指定关系
+    adder = db.relationship('User', foreign_keys=[added_by])
+
+class Campaign(db.Model):
+    """营销活动模型"""
+    __tablename__ = 'campaign'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text)
+    segment_id = db.Column(db.Integer, db.ForeignKey('user_segment.id'), nullable=False)
+    strategy = db.Column(db.Text)  # JSON格式的策略配置
+    start_time = db.Column(db.DateTime)
+    end_time = db.Column(db.DateTime)
+    status = db.Column(db.String(20), default='draft')  # draft, active, completed, archived
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # 关系
+    creator = db.relationship('User', backref=db.backref('campaigns', lazy=True))
+    feedbacks = db.relationship('CampaignFeedback', backref=db.backref('campaign', lazy=True))
+
+class CampaignFeedback(db.Model):
+    """营销活动反馈"""
+    __tablename__ = 'campaign_feedback'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    campaign_id = db.Column(db.Integer, db.ForeignKey('campaign.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    rating = db.Column(db.Integer)  # 1-5
+    feedback = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # 关系
+    user = db.relationship('User', backref=db.backref('campaign_feedbacks', lazy=True))
 
 
 # 辅助函数
@@ -1411,6 +1521,412 @@ def get_feature_version(version_id):
         'created_at': version.created_at.strftime('%Y-%m-%d %H:%M'),
         'author': version.author.username if version.author else 'Unknown'
     })
+
+#### 用户分群
+# 用户分群路由组
+@app.route('/segments')
+def segment_list():
+    project_id = request.args.get('project_id')
+    search_query = request.args.get('q', '').strip()
+    
+    query = UserSegment.query
+    
+    if project_id:
+        query = query.filter_by(project_id=project_id)
+    
+    if search_query:
+        query = query.filter(
+            db.or_(
+                UserSegment.name.ilike(f'%{search_query}%'),
+                UserSegment.description.ilike(f'%{search_query}%')
+            )
+        )
+    
+    segments = query.order_by(UserSegment.updated_at.desc()).all()
+    projects = Project.query.all()
+    
+    return render_template('segments/list.html', 
+                         segments=segments,
+                         projects=projects,
+                         selected_project_id=int(project_id) if project_id else None,
+                         search_query=search_query)
+
+@app.route('/segments/<int:segment_id>')
+def segment_detail(segment_id):
+    segment = db.session.get(UserSegment, segment_id)
+    if not segment:
+        flash('Segment not found', 'error')
+        return redirect(url_for('segment_list'))
+    
+    # 获取分群用户数量
+    user_count = len(segment.users)
+    
+    # 解析过滤规则
+    try:
+        filter_rules = json.loads(segment.filter_rules) if segment.filter_rules else {}
+    except json.JSONDecodeError:
+        filter_rules = {}
+    
+    # 获取关联的营销活动
+    campaigns = segment.campaigns
+    
+    return render_template('segments/detail.html',
+                         segment=segment,
+                         user_count=user_count,
+                         filter_rules=filter_rules,
+                         campaigns=campaigns)
+
+
+@app.route('/segments/<int:segment_id>/users')
+def segment_users(segment_id):
+    segment = db.session.get(UserSegment, segment_id)
+    if not segment:
+        flash('Segment not found', 'error')
+        return redirect(url_for('segment_list'))
+    
+    # 分页处理
+    page = request.args.get('page', 1, type=int)
+    per_page = 20
+    
+    users = User.query.join(SegmentUser).filter(SegmentUser.segment_id == segment_id)\
+        .order_by(SegmentUser.added_at.desc()).paginate(page=page, per_page=per_page)
+    
+    return render_template('segments/users.html',
+                         segment=segment,
+                         users=users)
+
+@app.route('/segments/<int:segment_id>/users/import', methods=['GET', 'POST'])
+def segment_import_users(segment_id):
+    segment = db.session.get(UserSegment, segment_id)
+    if not segment:
+        flash('Segment not found', 'error')
+        return redirect(url_for('segment_list'))
+    
+    if request.method == 'POST':
+        try:
+            # 处理文件上传
+            if 'file' not in request.files:
+                flash('No file uploaded', 'error')
+                return redirect(request.url)
+            
+            file = request.files['file']
+            if file.filename == '':
+                flash('No selected file', 'error')
+                return redirect(request.url)
+            
+            if file and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                file.save(filepath)
+                
+                # 解析文件并导入用户
+                import_count = 0
+                if filename.endswith('.csv'):
+                    import_count = import_users_from_csv(segment_id, filepath)
+                elif filename.endswith('.json'):
+                    import_count = import_users_from_json(segment_id, filepath)
+                
+                flash(f'Successfully imported {import_count} users', 'success')
+                return redirect(url_for('segment_users', segment_id=segment_id))
+        
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error importing users: {str(e)}', 'error')
+            return redirect(url_for('segment_import_users', segment_id=segment_id))
+    
+    return render_template('segments/import.html', segment=segment)
+
+@app.route('/segments/<int:segment_id>/users/export')
+def segment_export_users(segment_id):
+    segment = db.session.get(UserSegment, segment_id)
+    if not segment:
+        flash('Segment not found', 'error')
+        return redirect(url_for('segment_list'))
+    
+    try:
+        # 创建内存文件
+        from io import StringIO
+        import csv
+        
+        si = StringIO()
+        cw = csv.writer(si)
+        
+        # 写入表头
+        cw.writerow(['id', 'username', 'email', 'role', 'created_at'])
+        
+        # 写入用户数据
+        for user in segment.users:
+            cw.writerow([
+                user.id,
+                user.username,
+                user.email,
+                user.role,
+                user.created_at.strftime('%Y-%m-%d %H:%M:%S')
+            ])
+        
+        # 创建响应
+        output = make_response(si.getvalue())
+        output.headers["Content-Disposition"] = f"attachment; filename=segment_{segment_id}_users.csv"
+        output.headers["Content-type"] = "text/csv"
+        return output
+    
+    except Exception as e:
+        flash(f'Error exporting users: {str(e)}', 'error')
+        return redirect(url_for('segment_users', segment_id=segment_id))
+
+# 营销活动路由
+@app.route('/campaigns')
+def campaign_list():
+    status = request.args.get('status', 'all')
+    search_query = request.args.get('q', '').strip()
+    
+    query = Campaign.query
+    
+    if status != 'all':
+        query = query.filter_by(status=status)
+    
+    if search_query:
+        query = query.filter(
+            db.or_(
+                Campaign.name.ilike(f'%{search_query}%'),
+                Campaign.description.ilike(f'%{search_query}%')
+            )
+        )
+    
+    campaigns = query.order_by(Campaign.created_at.desc()).all()
+    return render_template('campaigns/list.html',
+                         campaigns=campaigns,
+                         status=status,
+                         search_query=search_query)
+
+@app.route('/campaigns/create', methods=['GET', 'POST'])
+def campaign_create():
+    form = CampaignForm()
+    form.segment_id.choices = [(s.id, s.name) for s in UserSegment.query.all()]
+    
+    if request.method == 'POST':
+        try:
+            data = request.get_json()
+            
+            # 验证CSRF
+            #if not data.get('csrf_token') or data['csrf_token'] != session.get('csrf_token'):
+            #    return jsonify({'success': False, 'message': '无效的CSRF令牌'}), 403
+            
+            # 创建活动
+            new_campaign = Campaign(
+                name=data['name'],
+                description=data.get('description', ''),
+                segment_id=data['segment_id'],
+                strategy=data.get('strategy', '{}'),
+                start_time=datetime.strptime(data['start_datetime'], '%Y-%m-%d %H:%M'),
+                end_time=datetime.strptime(data['end_datetime'], '%Y-%m-%d %H:%M'),
+                created_by= 0, # current_user.id,
+                status='draft'
+            )
+            
+            db.session.add(new_campaign)
+            db.session.commit()
+            
+            return jsonify({
+                'success': True,
+                'redirect_url': url_for('campaign_detail', campaign_id=new_campaign.id)
+            })
+            
+        except ValueError as e:
+            return jsonify({
+                'success': False,
+                'message': f'日期格式错误: {str(e)}'
+            }), 400
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({
+                'success': False,
+                'message': str(e)
+            }), 500
+    
+    # GET请求显示表单
+    return render_template('campaigns/create.html', form=form)
+
+@app.route('/campaigns/<int:campaign_id>/edit', methods=['GET', 'POST'])
+def campaign_edit(campaign_id):
+    campaign = Campaign.query.get_or_404(campaign_id)
+    form = CampaignForm(obj=campaign)
+    form.segment_id.choices = [(s.id, s.name) for s in UserSegment.query.all()]
+    
+    if request.method == 'POST':
+        try:
+            data = request.get_json()
+            
+            # 更新活动信息
+            campaign.name = data['name']
+            campaign.description = data.get('description', '')
+            campaign.segment_id = data['segment_id']
+            campaign.strategy = data.get('strategy', '{}')
+            campaign.start_time = datetime.strptime(data['start_datetime'], '%Y-%m-%d %H:%M')
+            campaign.end_time = datetime.strptime(data['end_datetime'], '%Y-%m-%d %H:%M')
+            
+            db.session.commit()
+            
+            return jsonify({
+                'success': True,
+                'redirect_url': url_for('campaign_detail', campaign_id=campaign.id)
+            })
+            
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({
+                'success': False,
+                'message': str(e)
+            }), 500
+    
+    # GET请求显示编辑表单
+    return render_template('campaigns/edit.html', 
+                         form=form,
+                         campaign=campaign)
+
+@app.route('/campaigns/<int:campaign_id>')
+def campaign_detail(campaign_id):
+    campaign = Campaign.query.get_or_404(campaign_id)
+    return render_template('campaigns/detail.html', campaign=campaign)
+
+@app.route('/debug/templates')
+def debug_templates():
+    try:
+        return render_template('campaigns/detail.html', campaign={
+            'name': '测试活动',
+            'segment': {'name': '测试分群'},
+            'start_time': datetime.now(),
+            'end_time': datetime.now(),
+            'strategy': '{"type": "test"}'
+        })
+    except Exception as e:
+        return str(e), 500
+
+@app.template_filter('average')
+def average_filter(sequence):
+    sequence = list(sequence)
+    if not sequence:
+        return 0
+    return sum(sequence) / len(sequence)
+
+@app.route('/campaigns/<int:campaign_id>/feedback')
+def campaign_feedback(campaign_id):
+    campaign = Campaign.query.get_or_404(campaign_id)
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
+    
+    feedbacks = CampaignFeedback.query.filter_by(campaign_id=campaign_id)\
+        .join(User)\
+        .order_by(CampaignFeedback.created_at.desc())\
+        .paginate(page=page, per_page=per_page)
+    
+    return render_template('campaigns/feedback.html',
+                         campaign=campaign,
+                         feedbacks=feedbacks)
+
+@app.route('/segments/create', methods=['GET', 'POST'])
+@csrf.exempt  # 如果是API接口可以临时禁用CSRF
+def segment_create():
+    form = SegmentForm()
+    
+    # 设置项目选择
+    form.project_id.choices = [(p.id, p.name) for p in Project.query.all()]
+    form.project_id.choices.insert(0, (0, '-- No Project --'))
+    
+    if form.validate_on_submit():
+        try:
+            new_segment = UserSegment(
+                name=form.name.data,
+                description=form.description.data,
+                project_id=form.project_id.data if form.project_id.data != 0 else None,
+                filter_rules=form.filter_rules.data,
+                created_by=1  # 替换为当前用户ID
+            )
+            
+            db.session.add(new_segment)
+            db.session.commit()
+            
+            flash('Segment created successfully', 'success')
+            return redirect(url_for('segment_list'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error creating segment: {str(e)}', 'error')
+    
+    return render_template('segments/form.html',
+                         form=form,
+                         is_edit=False)
+
+@app.route('/segments/<int:segment_id>/edit', methods=['GET', 'POST'])
+def segment_edit(segment_id):
+    segment = UserSegment.query.get_or_404(segment_id)
+    form = SegmentForm(obj=segment)
+    
+    # 设置项目选择
+    form.project_id.choices = [(p.id, p.name) for p in Project.query.all()]
+    form.project_id.choices.insert(0, (0, '-- No Project --'))
+    
+    if form.validate_on_submit():
+        try:
+            segment.name = form.name.data
+            segment.description = form.description.data
+            segment.project_id = form.project_id.data if form.project_id.data != 0 else None
+            segment.filter_rules = form.filter_rules.data
+            
+            db.session.commit()
+            flash('Segment updated successfully', 'success')
+            return redirect(url_for('segment_detail', segment_id=segment.id))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating segment: {str(e)}', 'error')
+    
+    return render_template('segments/form.html',
+                         form=form,
+                         segment=segment,
+                         is_edit=True)
+
+
+def import_users_from_csv(segment_id, filepath):
+    """从CSV文件导入用户到分群"""
+    import csv
+    
+    with open(filepath, 'r', encoding='utf-8') as f:
+        reader = csv.DictReader(f)
+        user_ids = [row['id'] for row in reader if 'id' in row]
+    
+    return add_users_to_segment(segment_id, user_ids)
+
+def import_users_from_json(segment_id, filepath):
+    """从JSON文件导入用户到分群"""
+    with open(filepath, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+        user_ids = [user['id'] for user in data if 'id' in user]
+    
+    return add_users_to_segment(segment_id, user_ids)
+
+def add_users_to_segment(segment_id, user_ids):
+    """添加用户到分群"""
+    existing_users = set(
+        db.session.query(SegmentUser.user_id)
+        .filter_by(segment_id=segment_id)
+        .all()
+    )
+    existing_users = {u[0] for u in existing_users}
+    
+    added_count = 0
+    for user_id in user_ids:
+        if int(user_id) not in existing_users:
+            segment_user = SegmentUser(
+                segment_id=segment_id,
+                user_id=user_id,
+                added_by=1  # 替换为当前用户ID
+            )
+            db.session.add(segment_user)
+            added_count += 1
+    
+    db.session.commit()
+    return added_count
 
 if __name__ == '__main__':
     app.run(debug=True,port=5010)

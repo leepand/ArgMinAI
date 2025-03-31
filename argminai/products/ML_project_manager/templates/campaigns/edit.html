@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold text-gray-800 dark:text-white">编辑营销活动</h2>
+        <a href="{{ url_for('campaign_detail', campaign_id=campaign.id) }}" 
+           class="bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white px-4 py-2 rounded-md text-sm font-medium">
+            返回详情
+        </a>
+    </div>
+    
+    <form id="campaignEditForm" method="POST" action="{{ url_for('campaign_edit', campaign_id=campaign.id) }}">
+        {{ form.hidden_tag() }}
+        
+        <div class="mb-4">
+            {{ form.name.label(class="block text-gray-700 dark:text-gray-300 mb-2") }}
+            {{ form.name(class="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white") }}
+        </div>
+        
+        <div class="mb-4">
+            {{ form.segment_id.label(class="block text-gray-700 dark:text-gray-300 mb-2") }}
+            {{ form.segment_id(class="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white") }}
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+                <label class="block text-gray-700 dark:text-gray-300 mb-2">开始时间</label>
+                <input type="datetime-local" name="start_datetime" 
+                       value="{{ campaign.start_time.strftime('%Y-%m-%dT%H:%M') }}"
+                       class="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
+            </div>
+            <div>
+                <label class="block text-gray-700 dark:text-gray-300 mb-2">结束时间</label>
+                <input type="datetime-local" name="end_datetime" 
+                       value="{{ campaign.end_time.strftime('%Y-%m-%dT%H:%M') }}"
+                       class="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
+            </div>
+        </div>
+        
+        <div class="mb-4">
+            {{ form.strategy.label(class="block text-gray-700 dark:text-gray-300 mb-2") }}
+            {{ form.strategy(class="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white", rows=6) }}
+        </div>
+        
+        <div class="flex justify-end space-x-3">
+            <button type="button" onclick="window.history.back()"
+               class="bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white px-4 py-2 rounded-md text-sm font-medium">
+                取消
+            </button>
+            <button type="submit" 
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+                保存更改
+            </button>
+        </div>
+    </form>
+</section>
+
+<script>
+document.getElementById('campaignEditForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '保存中...';
+    
+    try {
+        const formData = new FormData(this);
+        const data = {
+            name: formData.get('name'),
+            description: formData.get('description'),
+            segment_id: formData.get('segment_id'),
+            strategy: formData.get('strategy'),
+            start_datetime: formData.get('start_datetime'),
+            end_datetime: formData.get('end_datetime'),
+            csrf_token: '{{ csrf_token() }}'
+        };
+        
+        const response = await fetch(this.action, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            window.location.href = result.redirect_url || "{{ url_for('campaign_detail', campaign_id=campaign.id) }}";
+        } else {
+            alert(result.message || '保存失败');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('请求失败，请检查网络连接');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+    }
+});
+</script>
+{% endblock %}

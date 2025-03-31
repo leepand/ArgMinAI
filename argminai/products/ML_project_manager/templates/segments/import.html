@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Import Users to "{{ segment.name }}"</h2>
+        <a href="{{ url_for('segment_users', segment_id=segment.id) }}" 
+           class="bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white px-4 py-2 rounded-md text-sm font-medium">
+            Back to Users
+        </a>
+    </div>
+    
+    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-6">
+        <form method="POST" enctype="multipart/form-data">
+            <div class="mb-4">
+                <label class="block text-gray-700 dark:text-gray-300 text-sm font-medium mb-2" for="file">
+                    Select File (CSV or JSON)
+                </label>
+                <input type="file" name="file" id="file" 
+                       class="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md py-2 px-3 text-sm w-full" 
+                       accept=".csv,.json" required>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    CSV format should have a column named "id". JSON format should be an array of objects with "id" property.
+                </p>
+            </div>
+            
+            <div class="flex justify-end">
+                <button type="submit" 
+                        class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+                    <i class="fas fa-upload mr-2"></i> Import Users
+                </button>
+            </div>
+        </form>
+    </div>
+</section>
+{% endblock %}

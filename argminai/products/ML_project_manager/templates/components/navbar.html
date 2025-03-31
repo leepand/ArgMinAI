@@ -52,6 +52,26 @@
                        {% endif %}">
                         <i class="fas fa-sliders-h  mr-2"></i> Features
                     </a>
+                    <!-- 在现有导航链接后添加 -->
+                    <a href="{{ url_for('segment_list') }}" 
+                    class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium 
+                    {% if request.endpoint and request.endpoint.startswith('segment_') %} 
+                        border-indigo-500 text-gray-900 dark:text-white
+                    {% else %}
+                        border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white
+                    {% endif %}">
+                        <i class="fas fa-users mr-2"></i> Segments
+                    </a>
+
+                    <a href="{{ url_for('campaign_list') }}" 
+                    class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium 
+                    {% if request.endpoint and request.endpoint.startswith('campaign_') %} 
+                        border-indigo-500 text-gray-900 dark:text-white
+                    {% else %}
+                        border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white
+                    {% endif %}">
+                        <i class="fas fa-bullhorn mr-2"></i> Campaigns
+                    </a>
                 </div>
             </div>
             <div class="hidden sm:ml-6 sm:flex sm:items-center">
