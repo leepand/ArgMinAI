@@ -12,7 +12,7 @@
     
     <form id="campaignEditForm" method="POST" action="{{ url_for('campaign_edit', campaign_id=campaign.id) }}">
         {{ form.hidden_tag() }}
-        
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
         <div class="mb-4">
             {{ form.name.label(class="block text-gray-700 dark:text-gray-300 mb-2") }}
             {{ form.name(class="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white") }}

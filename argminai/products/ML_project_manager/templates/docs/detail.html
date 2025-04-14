@@ -28,8 +28,8 @@
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div class="md:col-span-3">
             <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 shadow overflow-hidden">
-                <div class="prose dark:prose-invert max-w-none">
-                    {{ document.content|markdown }}
+                <div id="doc-content" class="prose dark:prose-invert max-w-none">
+                    {{ document.html_content | safe }}
                 </div>
             </div>
         </div>
@@ -39,18 +39,17 @@
                 <div class="p-4 border-b border-gray-200 dark:border-gray-600">
                     <h3 class="font-medium text-gray-800 dark:text-white">Version History</h3>
                 </div>
-                <!-- 更新版本历史部分 -->
                 <div class="p-2">
                     <ul class="space-y-2">
                         {% for version in versions %}
                         <li>
                             <a href="{{ url_for('doc_version_compare', doc_id=document.id) }}?from_version={{ version.id }}&to_version={{ document.id }}"
-   class="flex items-center px-3 py-2 text-sm font-medium rounded-md {% if version.id == document.id %}bg-indigo-50 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-100{% else %}text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-600{% endif %}">
-                            <span class="truncate">v{{ version.version }}</span>
-                            <span class="ml-auto text-xs text-gray-500 dark:text-gray-400">
-                                {{ version.created_at.strftime('%m/%d %H:%M') }}
-                            </span>
-                        </a>
+                               class="flex items-center px-3 py-2 text-sm font-medium rounded-md {% if version.id == document.id %}bg-indigo-50 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-100{% else %}text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-600{% endif %}">
+                                <span class="truncate">v{{ version.version }}</span>
+                                <span class="ml-auto text-xs text-gray-500 dark:text-gray-400">
+                                    {{ version.created_at.strftime('%m/%d %H:%M') }}
+                                </span>
+                            </a>
                         </li>
                         {% endfor %}
                     </ul>
@@ -59,4 +58,78 @@
         </div>
     </div>
 </section>
+
+<!-- 配置 MathJax 以支持行内和块级公式 -->
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<script>
+    // 配置 MathJax
+    window.MathJax = {
+        tex: {
+            inlineMath: [['$', '$']],         // 行内公式使用 $...$
+            displayMath: [['$$', '$$']],      // 块级公式使用 $$...$$
+            processEscapes: true              // 处理转义字符
+        },
+        options: {
+            skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'], // 跳过代码块
+            ignoreHtmlClass: 'tex2jax_ignore' // 忽略特定类
+        }
+    };
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const docContent = document.getElementById('doc-content');
+        
+        if (window.MathJax && docContent) {
+            MathJax.typesetPromise([docContent]).catch(err => {
+                console.error('MathJax typeset error:', err);
+            });
+        }
+    });
+</script>
+
+<style>
+/* 保持样式一致性 */
+#doc-content ul, #doc-content ol {
+    margin-left: 20px;
+    padding-left: 0;
+}
+
+#doc-content ul {
+    list-style-type: disc;
+}
+
+#doc-content ol {
+    list-style-type: decimal;
+}
+
+#doc-content code {
+    font-family: monospace;
+    background-color: rgba(175, 184, 193, 0.2);
+    padding: 0.2em 0.4em;
+    border-radius: 3px;
+}
+
+#doc-content pre {
+    background-color: #f6f8fa;
+    padding: 16px;
+    border-radius: 3px;
+    overflow: auto;
+}
+
+.dark #doc-content pre {
+    background-color: #2d2d2d;
+}
+
+#doc-content blockquote {
+    border-left: 4px solid #dfe2e5;
+    padding-left: 16px;
+    margin-left: 0;
+    color: #6a737d;
+}
+
+.dark #doc-content blockquote {
+    border-left-color: #4b5563;
+    color: #9ca3af;
+}
+</style>
 {% endblock %}
