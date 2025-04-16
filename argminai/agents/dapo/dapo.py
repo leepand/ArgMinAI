@@ -2,10 +2,24 @@ import numpy as np
 from collections import defaultdict
 import random
 
+
 class DAPOAgent:
-    def __init__(self, state_space, action_space, gamma=0.99, alpha_Q=0.1, alpha_pi=0.01, 
-                 epsilon=0.1, G=5, epsilon_low=0.2, epsilon_high=0.5, buffer_size=32, 
-                 beta_entropy=0.01, overlong_threshold=10, overlong_penalty=-0.1):
+    def __init__(
+        self,
+        state_space,
+        action_space,
+        gamma=0.99,
+        alpha_Q=0.1,
+        alpha_pi=0.01,
+        epsilon=0.1,
+        G=5,
+        epsilon_low=0.2,
+        epsilon_high=0.5,
+        buffer_size=32,
+        beta_entropy=0.01,
+        overlong_threshold=10,
+        overlong_penalty=-0.1,
+    ):
         """
         初始化 DAPO 代理，结合 Q-table 和 π_θ-table。
         """
@@ -38,7 +52,11 @@ class DAPOAgent:
         if random.random() < self.epsilon:
             probs = self.pi_theta[state]
             # 确保概率有效
-            if np.any(np.isnan(probs)) or np.any(probs < 0) or not np.isclose(np.sum(probs), 1.0):
+            if (
+                np.any(np.isnan(probs))
+                or np.any(probs < 0)
+                or not np.isclose(np.sum(probs), 1.0)
+            ):
                 probs = np.ones(self.action_space) / self.action_space
             return np.random.choice(self.action_space, p=probs)
         else:
@@ -55,7 +73,11 @@ class DAPOAgent:
             else:
                 probs = self.pi_theta_old[state]
                 # 确保概率有效
-                if np.any(np.isnan(probs)) or np.any(probs < 0) or not np.isclose(np.sum(probs), 1.0):
+                if (
+                    np.any(np.isnan(probs))
+                    or np.any(probs < 0)
+                    or not np.isclose(np.sum(probs), 1.0)
+                ):
                     probs = np.ones(self.action_space) / self.action_space
                 action = np.random.choice(self.action_space, p=probs)
             actions.append(action)
@@ -81,7 +103,7 @@ class DAPOAgent:
         probs /= np.sum(probs)
         entropy_grad = np.zeros_like(probs)
         for a in range(len(probs)):
-            entropy_grad[a] = - (np.log(probs[a]) + 1)
+            entropy_grad[a] = -(np.log(probs[a]) + 1)
         return entropy_grad
 
     def update(self, state, action, reward, next_state, sequence_length):
@@ -98,10 +120,12 @@ class DAPOAgent:
                 r_i = reward + self.gamma * np.max(self.Q[next_state])
             else:
                 r_i = self.Q[state][a_i]
-            
+
             # 应用 Overlong Reward Shaping
             if sequence_length > self.overlong_threshold:
-                r_i += self.overlong_penalty * (sequence_length - self.overlong_threshold)
+                r_i += self.overlong_penalty * (
+                    sequence_length - self.overlong_threshold
+                )
             rewards.append(r_i)
 
         # 3. 动态采样：过滤掉奖励全相同的样本
@@ -130,11 +154,17 @@ class DAPOAgent:
             # 更新 π_θ-table（针对所有采样的动作）
             self.pi_theta_old[buf_state] = self.pi_theta[buf_state].copy()
             for idx, a_i in enumerate(buf_actions):
-                r_ratio = self.pi_theta[buf_state][a_i] / (self.pi_theta_old[buf_state][a_i] + 1e-10)
-                clipped_ratio = np.clip(r_ratio, 1 - self.epsilon_low, 1 + self.epsilon_high)
-                
+                r_ratio = self.pi_theta[buf_state][a_i] / (
+                    self.pi_theta_old[buf_state][a_i] + 1e-10
+                )
+                clipped_ratio = np.clip(
+                    r_ratio, 1 - self.epsilon_low, 1 + self.epsilon_high
+                )
+
                 # DAPO 更新项
-                update_term = min(r_ratio * advantages[idx], clipped_ratio * advantages[idx])
+                update_term = min(
+                    r_ratio * advantages[idx], clipped_ratio * advantages[idx]
+                )
 
                 # 熵正则化
                 entropy_grad = self.compute_entropy_gradient(self.pi_theta[buf_state])
@@ -142,7 +172,9 @@ class DAPOAgent:
 
                 # 更新 π_θ(a_i|s)，并确保不产生负值
                 self.pi_theta[buf_state][a_i] += self.alpha_pi * update_term
-                self.pi_theta[buf_state][a_i] = max(self.pi_theta[buf_state][a_i], 1e-10)
+                self.pi_theta[buf_state][a_i] = max(
+                    self.pi_theta[buf_state][a_i], 1e-10
+                )
 
             # 标准化 π_θ(·|s)
             total = np.sum(self.pi_theta[buf_state])
@@ -150,10 +182,13 @@ class DAPOAgent:
                 self.pi_theta[buf_state] /= total
             else:
                 # 如果总和为 0，恢复为均匀分布
-                self.pi_theta[buf_state] = np.ones(self.action_space) / self.action_space
+                self.pi_theta[buf_state] = (
+                    np.ones(self.action_space) / self.action_space
+                )
 
         # 清空缓冲区
         self.buffer = []
+
 
 class GridWorld:
     def __init__(self, size=5):
@@ -186,11 +221,24 @@ class GridWorld:
         self.state = next_state
         return next_state, reward, done
 
+
 def train_and_test():
     env = GridWorld(size=5)
-    agent = DAPOAgent(state_space=25, action_space=4, gamma=0.99, alpha_Q=0.1, alpha_pi=0.01, 
-                      epsilon=0.1, G=5, epsilon_low=0.2, epsilon_high=0.5, buffer_size=32, 
-                      beta_entropy=0.01, overlong_threshold=10, overlong_penalty=-0.1)
+    agent = DAPOAgent(
+        state_space=25,
+        action_space=4,
+        gamma=0.99,
+        alpha_Q=0.1,
+        alpha_pi=0.01,
+        epsilon=0.1,
+        G=5,
+        epsilon_low=0.2,
+        epsilon_high=0.5,
+        buffer_size=32,
+        beta_entropy=0.01,
+        overlong_threshold=10,
+        overlong_penalty=-0.1,
+    )
 
     num_episodes = 1000
     for episode in range(num_episodes):
@@ -223,6 +271,7 @@ def train_and_test():
         state = next_state
         print(f"State: {state}, Action: {action}, Reward: {reward}")
     print(f"Test Total Reward: {total_reward}")
+
 
 if __name__ == "__main__":
     train_and_test()
